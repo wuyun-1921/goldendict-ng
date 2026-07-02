@@ -260,6 +260,7 @@ MainWindow::MainWindow( Config::Class & cfg_ ):
 
   ui.setupUi( this );
   ui.panelSplitter->setOrientation( Qt::Horizontal ); // side-by-side (all columns)
+  ui.panelSplitter->setVisible( true ); // always visible, width=0 when empty
 
   // Set own gesture recognizers
 #ifndef Q_OS_MAC
@@ -1386,8 +1387,6 @@ void MainWindow::addPanel( ArticleView * av )
     ui.tabWidget->setCurrentIndex( newIdx );
     if ( panel->count() == 0 ) {
       delete panel;
-      if ( ui.panelSplitter->count() == 0 )
-        ui.panelSplitter->setVisible( false );
       distributePanelSizes();
     }
   } );
@@ -1397,7 +1396,6 @@ void MainWindow::addPanel( ArticleView * av )
   panel->setCurrentWidget( av );
   av->focus();
 
-  ui.panelSplitter->setVisible( true );
   distributePanelSizes();
 }
 
@@ -1453,15 +1451,6 @@ void MainWindow::distributePanelSizes()
 
   for ( int i = 0; i < ui.panelSplitter->count(); i++ )
     ui.panelSplitter->setStretchFactor( i, 1 );
-
-  int total = ( ui.panelSplitter->orientation() == Qt::Horizontal )
-                ? ui.panelSplitter->width() : ui.panelSplitter->height();
-  if ( total > 0 ) {
-    QList< int > sizes;
-    for ( int i = 0; i < ui.panelSplitter->count(); i++ )
-      sizes << total / ui.panelSplitter->count();
-    ui.panelSplitter->setSizes( sizes );
-  }
 }
 
 void MainWindow::togglePanel()
