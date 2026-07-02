@@ -262,7 +262,7 @@ MainWindow::MainWindow( Config::Class & cfg_ ):
 
   // Replace QHBoxLayout with QSplitter for tab area and panel area
   // (QHBoxLayout stretch factors don't control initial sizes)
-  auto * outerSplitter = new QSplitter( Qt::Horizontal, this );
+  auto * outerSplitter = new QSplitter( Qt::Vertical, this );
   outerSplitter->setObjectName( "outerSplitter" );
   // Remove widgets from centralLayout
   ui.centralLayout->removeWidget( ui.tabWidget );
@@ -1411,11 +1411,11 @@ void MainWindow::addPanel( ArticleView * av )
 
   panel->addTab( av, title );
   panel->setCurrentWidget( av );
-  av->focus(); // ensure webview has focus for keyboard shortcuts
-  ui.panelSplitter->setVisible( true );
+  av->focus();
 
   // Default: side-by-side panels (Qt::Vertical = horizontal arrangement)
   ui.panelSplitter->setOrientation( Qt::Vertical );
+  ui.panelSplitter->setVisible( true );
 
   distributePanelSizes();
 }
