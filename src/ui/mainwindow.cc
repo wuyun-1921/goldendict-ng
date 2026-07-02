@@ -1452,13 +1452,26 @@ void MainWindow::removePanel( ArticleView * av )
 
 void MainWindow::distributePanelSizes()
 {
-  // Always 50/50 between tab area and panel area
-  ui.centralLayout->setStretchFactor( ui.tabWidget, 1 );
-  ui.centralLayout->setStretchFactor( ui.panelSplitter, 1 );
+  int panelCount = 0;
+  for ( int i = 0; i < ui.panelSplitter->count(); i++ ) {
+    auto * p = qobject_cast< QTabWidget * >( ui.panelSplitter->widget( i ) );
+    if ( p && p->count() > 0 )
+      panelCount++;
+  }
+
+  // Side-by-side columns: each column = 1/(1+panelCount)
+  // Stacked: 2 columns = 50/50
+  if ( ui.panelSplitter->orientation() == Qt::Vertical ) {
+    ui.centralLayout->setStretchFactor( ui.tabWidget, 1 );
+    ui.centralLayout->setStretchFactor( ui.panelSplitter, panelCount );
+  } else {
+    ui.centralLayout->setStretchFactor( ui.tabWidget, 1 );
+    ui.centralLayout->setStretchFactor( ui.panelSplitter, 1 );
+  }
   ui.centralLayout->invalidate();
   ui.centralLayout->activate();
 
-  // Panel splitter: stretch + explicit sizes
+  // Internal panel sizing
   if ( ui.panelSplitter->count() > 0 ) {
     for ( int i = 0; i < ui.panelSplitter->count(); i++ )
       ui.panelSplitter->setStretchFactor( i, 1 );
