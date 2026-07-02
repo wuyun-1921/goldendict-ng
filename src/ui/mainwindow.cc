@@ -261,6 +261,13 @@ MainWindow::MainWindow( Config::Class & cfg_ ):
   ui.setupUi( this );
   ui.panelSplitter->setOrientation( Qt::Vertical ); // side-by-side default
 
+  // Move tabWidget into panelSplitter — single splitter, all items equal
+  ui.centralLayout->removeWidget( ui.tabWidget );
+  ui.centralLayout->removeWidget( ui.panelSplitter );
+  ui.panelSplitter->insertWidget( 0, ui.tabWidget );
+  ui.panelSplitter->setVisible( true );
+  ui.centralLayout->addWidget( ui.panelSplitter );
+
   // Set own gesture recognizers
 #ifndef Q_OS_MAC
   Gestures::registerRecognizers();
@@ -1370,7 +1377,7 @@ void MainWindow::addPanel( ArticleView * av )
     ui.tabWidget->removeTab( mainIdx );
   }
 
-  // Always create a new panel (appears to the right of existing ones)
+  // Always create a new panel
   QTabWidget * panel = new QTabWidget();
   panel->setTabsClosable( true );
   panel->setMovable( true );
@@ -1386,8 +1393,6 @@ void MainWindow::addPanel( ArticleView * av )
     ui.tabWidget->setCurrentIndex( newIdx );
     if ( panel->count() == 0 ) {
       delete panel;
-      if ( ui.panelSplitter->count() == 0 )
-        ui.panelSplitter->setVisible( false );
       distributePanelSizes();
     }
   } );
@@ -1397,10 +1402,6 @@ void MainWindow::addPanel( ArticleView * av )
   panel->setCurrentWidget( av );
   av->focus();
 
-  // Ensure side-by-side default
-  ui.panelSplitter->setOrientation( Qt::Vertical );
-  ui.panelSplitter->setVisible( true );
-
   distributePanelSizes();
 }
 
@@ -1409,7 +1410,7 @@ void MainWindow::removePanel( ArticleView * av )
   // Save title before removing from panel
   QString title = av->windowTitle();
   QTabWidget * targetPanel = nullptr;
-  for ( int i = 0; i < ui.panelSplitter->count(); i++ ) {
+  for ( int i = 1; i < ui.panelSplitter->count(); i++ ) { // skip tabWidget at 0
     auto * panel = qobject_cast< QTabWidget * >( ui.panelSplitter->widget( i ) );
     if ( !panel )
       continue;
@@ -1438,36 +1439,20 @@ void MainWindow::removePanel( ArticleView * av )
 
 void MainWindow::distributePanelSizes()
 {
-  int panelCount = 0;
-  for ( int i = 0; i < ui.panelSplitter->count(); i++ ) {
-    auto * p = qobject_cast< QTabWidget * >( ui.panelSplitter->widget( i ) );
-    if ( p && p->count() > 0 )
-      panelCount++;
-  }
+  int count = ui.panelSplitter->count();
+  if ( count == 0 )
+    return;
 
-  // Side-by-side: each column = 1/(1+panelCount). Stacked: 2 columns 50/50.
-  if ( ui.panelSplitter->orientation() == Qt::Vertical ) {
-    ui.centralLayout->setStretchFactor( ui.tabWidget, 1 );
-    ui.centralLayout->setStretchFactor( ui.panelSplitter, panelCount );
-  } else {
-    ui.centralLayout->setStretchFactor( ui.tabWidget, 1 );
-    ui.centralLayout->setStretchFactor( ui.panelSplitter, 1 );
-  }
-  ui.centralLayout->invalidate();
-  ui.centralLayout->activate();
+  for ( int i = 0; i < count; i++ )
+    ui.panelSplitter->setStretchFactor( i, 1 );
 
-  // Internal panel sizing
-  if ( ui.panelSplitter->count() > 0 ) {
-    for ( int i = 0; i < ui.panelSplitter->count(); i++ )
-      ui.panelSplitter->setStretchFactor( i, 1 );
-    int total = ( ui.panelSplitter->orientation() == Qt::Vertical )
-                  ? ui.panelSplitter->width() : ui.panelSplitter->height();
-    if ( total > 0 ) {
-      QList< int > sizes;
-      for ( int i = 0; i < ui.panelSplitter->count(); i++ )
-        sizes << total / ui.panelSplitter->count();
-      ui.panelSplitter->setSizes( sizes );
-    }
+  int total = ( ui.panelSplitter->orientation() == Qt::Vertical )
+                ? ui.panelSplitter->width() : ui.panelSplitter->height();
+  if ( total > 0 ) {
+    QList< int > sizes;
+    for ( int i = 0; i < count; i++ )
+      sizes << total / count;
+    ui.panelSplitter->setSizes( sizes );
   }
 }
 
@@ -1516,7 +1501,7 @@ void MainWindow::togglePanelOrientation()
 int MainWindow::totalTabCount() const
 {
   int count = ui.tabWidget->count();
-  for ( int i = 0; i < ui.panelSplitter->count(); i++ ) {
+  for ( int i = 1; i < ui.panelSplitter->count(); i++ ) { // skip tabWidget at 0
     auto * panel = qobject_cast< QTabWidget * >( ui.panelSplitter->widget( i ) );
     if ( panel )
       count += panel->count();
@@ -1527,7 +1512,7 @@ int MainWindow::totalTabCount() const
 int MainWindow::panelCount() const
 {
   int count = 0;
-  for ( int i = 0; i < ui.panelSplitter->count(); i++ ) {
+  for ( int i = 1; i < ui.panelSplitter->count(); i++ ) { // skip tabWidget at 0
     auto * panel = qobject_cast< QTabWidget * >( ui.panelSplitter->widget( i ) );
     if ( panel && panel->count() > 0 )
       count++;
