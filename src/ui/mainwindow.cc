@@ -516,28 +516,19 @@ MainWindow::MainWindow( Config::Class & cfg_ ):
   } );
   togglePanelOrientationAction.setShortcut( QKeySequence( "Ctrl+Shift+H" ) );
 
-  // Close panel (move focused panel back to tab bar)
-  closePanelAction.setText( tr("Close Panel") );
-  closePanelAction.setShortcut( QKeySequence("Ctrl+Shift+Q") );
-  closePanelAction.setShortcutContext( Qt::WidgetWithChildrenShortcut );
-  connect( &closePanelAction, &QAction::triggered, this, [this]() {
-    // Find focused ArticleView in a panel
-    QWidget * w = QApplication::focusWidget();
-    while ( w && !qobject_cast< ArticleView * >( w ) ) {
+  // Close current panel tab
+  closePanelAction.setText( tr("Close Panel Tab") );
+  addGlobalAction( &closePanelAction, [ this ]() {
+    QWidget * focus = QApplication::focusWidget();
+    QWidget * w = focus;
+    while ( w && !qobject_cast< QTabWidget * >( w ) && w != ui.panelSplitter && w != ui.tabWidget )
       w = w->parentWidget();
-    }
-    if ( auto * av = qobject_cast< ArticleView * >( w ) ) {
-      // Check if it's in a panel (not main tab widget)
-      for ( int i = 0; i < ui.panelSplitter->count(); i++ ) {
-        auto * panel = qobject_cast< QTabWidget * >( ui.panelSplitter->widget( i ) );
-        if ( panel && panel->indexOf( av ) >= 0 ) {
-          removePanel( av );
-          break;
-        }
-      }
+    if ( auto * panel = qobject_cast< QTabWidget * >( w ) ) {
+      if ( auto * av = qobject_cast< ArticleView * >( panel->currentWidget() ) )
+        removePanel( av );
     }
   } );
-  addAction( &closePanelAction );
+  closePanelAction.setShortcut( QKeySequence( "Ctrl+Shift+Q" ) );
 
   closeCurrentTabAction.setShortcutContext( Qt::WidgetWithChildrenShortcut );
   closeCurrentTabAction.setShortcut( QKeySequence( "Ctrl+W" ) );
@@ -1379,8 +1370,7 @@ void MainWindow::addPanel( ArticleView * av )
     ui.tabWidget->setCurrentIndex( newIdx );
     // Last tab closed → remove panel
     if ( panel->count() == 0 ) {
-      panel->setParent( nullptr );
-      panel->deleteLater();
+      delete panel;
       ui.panelSplitter->updateGeometry();
       if ( ui.panelSplitter->count() == 0 )
         ui.panelSplitter->setVisible( false );
@@ -1422,8 +1412,7 @@ void MainWindow::removePanel( ArticleView * av )
 
   // Clean up empty panel
   if ( targetPanel && targetPanel->count() == 0 ) {
-    targetPanel->setParent( nullptr );
-    targetPanel->deleteLater();
+    delete targetPanel;
     ui.panelSplitter->updateGeometry();
   }
 
@@ -1520,6 +1509,8 @@ void MainWindow::addGlobalAction( QAction * action, const std::function< void() 
   connect( action, &QAction::triggered, this, slotFunc );
 
   ui.centralWidget->addAction( action );
+  ui.tabWidget->addAction( action );
+  ui.panelSplitter->addAction( action );
   ui.dictsPane->addAction( action );
   ui.searchPaneWidget->addAction( action );
   ui.favoritesPane->addAction( action );
