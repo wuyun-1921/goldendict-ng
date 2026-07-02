@@ -203,3 +203,29 @@ if (
 } else {
   document.addEventListener("DOMContentLoaded", gdAttachEventHandlers);
 }
+
+// Split-scroll zone: left half scrolls page, right half scrolls article
+(function() {
+  let splitPercent = 50;
+
+  if (typeof articleview !== 'undefined'
+      && typeof articleview.scrollZoneSplitChanged !== 'undefined') {
+    articleview.scrollZoneSplitChanged.connect(function(pct) {
+      splitPercent = pct;
+    });
+  }
+
+  document.addEventListener('wheel', function(e) {
+    var article = e.target.closest('.gdarticlebody');
+    if (!article) return;
+
+    var rect = article.getBoundingClientRect();
+    var splitX = rect.left + (rect.width * splitPercent / 100);
+
+    if (e.clientX < splitX) {
+      // Left zone: let outer page scroll
+      e.stopPropagation();
+    }
+    // Right zone: default behavior scrolls inside the article
+  }, { passive: false });
+})();

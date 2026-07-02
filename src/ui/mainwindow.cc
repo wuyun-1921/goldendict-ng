@@ -2480,6 +2480,7 @@ void MainWindow::editPreferences()
 
       view.setSelectionBySingleClick( p.selectWordBySingleClick );
       view.syncBackgroundColorWithCfgDarkReader();
+      view.getAgent().setScrollZoneSplit( p.dictPanelScrollZone );
       if ( needReload ) {
         view.reload();
       }

@@ -41,6 +41,11 @@ class ArticleView: public QWidget
 
   AnkiConnector * ankiConnector;
 
+public:
+  ArticleViewAgent & getAgent() { return *agent; }
+
+private:
+
   QAction pasteAction, articleUpAction, articleDownAction, goBackAction, goForwardAction, selectCurrentArticleAction,
     copyAsTextAction, inspectAction;
 
@@ -493,12 +498,28 @@ class ArticleViewAgent: public QObject
   Q_OBJECT
   ArticleView * articleView;
 
+  Q_PROPERTY( int scrollZoneSplit READ scrollZoneSplit WRITE setScrollZoneSplit NOTIFY scrollZoneSplitChanged )
+
 public:
   explicit ArticleViewAgent( ArticleView * articleView );
 
+  int scrollZoneSplit() const { return m_scrollZoneSplit; }
+  void setScrollZoneSplit( int pct )
+  {
+    if ( m_scrollZoneSplit != pct ) {
+      m_scrollZoneSplit = pct;
+      emit scrollZoneSplitChanged( pct );
+    }
+  }
+
+signals:
+  void scrollZoneSplitChanged( int pct );
 
 public slots:
   Q_INVOKABLE void onJsActiveArticleChanged( const QString & id );
   Q_INVOKABLE void linkClickedInHtml( const QUrl & );
   Q_INVOKABLE void collapseInHtml( const QString & dictId, bool on = true ) const;
+
+private:
+  int m_scrollZoneSplit = 50;
 };

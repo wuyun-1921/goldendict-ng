@@ -238,6 +238,7 @@ ArticleView::ArticleView( QWidget * parent,
 
   channel = new QWebChannel( webview->page() );
   agent   = new ArticleViewAgent( this );
+  agent->setScrollZoneSplit( cfg.preferences.dictPanelScrollZone );
   attachWebChannelToHtml();
   ankiConnector = new AnkiConnector( this, cfg );
   connect( ankiConnector, &AnkiConnector::errorText, this, [ this ]( const QString & errorText ) {
