@@ -1740,7 +1740,7 @@ download page.</string>
        <item>
         <widget class="QGroupBox" name="groupBox_6">
          <property name="title">
-          <string>Articles</string>
+          <string>Display</string>
          </property>
          <layout class="QGridLayout" name="gridLayout_3">
           <item row="2" column="4">
@@ -1882,7 +1882,7 @@ from mouse-over, selection, clipboard or command line</string>
        <item>
         <widget class="QGroupBox" name="dictPanelGroup">
          <property name="title">
-          <string>Articles Extra</string>
+          <string>Articles</string>
          </property>
          <layout class="QFormLayout" name="formLayout_dictPanel">
           <item row="0" column="0">
@@ -1933,6 +1933,9 @@ from mouse-over, selection, clipboard or command line</string>
             </item>
             <item>
              <widget class="QSpinBox" name="dictPanelScrollZone">
+              <property name="toolTip">
+               <string>Width of the middle scroll zone as percentage. Moving the mouse wheel in this zone scrolls the article. Moving in the outer zones scrolls the page.</string>
+              </property>
               <property name="suffix">
                <string>%</string>
               </property>

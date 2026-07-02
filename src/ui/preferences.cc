@@ -272,6 +272,14 @@ auto updateDictPanelWidgets = [ this ]() {
 connect( ui.dictPanelEnabled, &QCheckBox::toggled, this, updateDictPanelWidgets );
 updateDictPanelWidgets();
 
+auto updateWebsitePanelOption = [ this ]() {
+  ui.openWebsitesInPanel->setEnabled( ui.openWebsiteInNewTab->isChecked() );
+  if ( !ui.openWebsiteInNewTab->isChecked() )
+    ui.openWebsitesInPanel->setChecked( false );
+};
+connect( ui.openWebsiteInNewTab, &QCheckBox::toggled, this, updateWebsitePanelOption );
+updateWebsitePanelOption();
+
   ui.synonymSearchEnabled->setChecked( p.synonymSearchEnabled );
 
   ui.stripClipboard->setChecked( p.stripClipboard );
@@ -395,7 +403,8 @@ updateDictPanelWidgets();
   ui.removeInvalidIndexOnExit->setChecked( p.removeInvalidIndexOnExit );
   ui.enableApplicationLog->setChecked( p.enableApplicationLog );
   ui.openWebsiteInNewTab->setChecked( p.openWebsiteInNewTab );
-ui.openWebsitesInPanel->setChecked( p.openWebsitesInPanel );
+ui.openWebsitesInPanel->setChecked( p.openWebsitesInPanel && p.openWebsiteInNewTab );
+ui.openWebsitesInPanel->setEnabled( p.openWebsiteInNewTab );
   ui.suppressWebDialogs->setChecked( p.suppressWebDialogs );
   ui.enableJavaScriptClipboard->setChecked( p.enableJavaScriptClipboardAccess );
 
