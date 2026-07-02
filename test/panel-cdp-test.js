@@ -45,12 +45,18 @@ async function getDebugUrl() {
 async function cdpSend(ws, method, params = {}) {
   const id = Math.floor(Math.random() * 1e9);
   return new Promise((resolve, reject) => {
-    const timeout = setTimeout(() => reject(new Error(`CDP ${method} timeout`)), 5000);
-    ws.once('message', (data) => {
-      clearTimeout(timeout);
+    const timeout = setTimeout(() => reject(new Error(`CDP ${method} timeout`)), 8000);
+    const handler = (data) => {
       const msg = JSON.parse(data.toString());
-      if (msg.id === id) resolve(msg.result);
-    });
+      if (msg.id === id) {
+        clearTimeout(timeout);
+        ws.removeListener('message', handler);
+        if (msg.error) reject(new Error(`CDP ${method}: ${msg.error.message}`));
+        else resolve(msg.result);
+      }
+      // Ignore non-matching messages (events from other commands)
+    };
+    ws.on('message', handler);
     ws.send(JSON.stringify({ id, method, params }));
   });
 }
@@ -91,17 +97,11 @@ async function runTests() {
   await cdpSend(ws, 'Runtime.enable');
 
   // Test 1: panelSplitter exists
-  console.log('1. Panel DOM structure');
+  console.log('1. DOM scriptability');
   try {
-    const hasSplitter = await evalJS(ws, `
-      (function() {
-        // QWebEngineView - we're inside the article page.
-        // Panel splitter is in the main window DOM, not accessible from article page.
-        // Instead, test what we CAN access: the gdarticlebody scroll zones.
-        return typeof document.querySelector !== 'undefined';
-      })()
-    `);
-    ok('DOM is scriptable');
+    const hasQuery = await evalJS(ws, 'typeof document.querySelector !== "undefined"');
+    if (hasQuery) ok('DOM is scriptable');
+    else fail('DOM scriptable', 'querySelector not available');
   } catch (e) {
     fail('DOM scriptable', e.message);
   }
@@ -109,41 +109,19 @@ async function runTests() {
   // Test 2: Scroll zones
   console.log('\n2. Scroll zone behavior');
   try {
-    const scrollWorks = await evalJS(ws, `
-      (function() {
-        // Verify gdarticlebody elements exist
-        var articles = document.querySelectorAll('.gdarticlebody');
-        return articles.length > 0 ? articles.length : 0;
-      })()
-    `);
-    if (scrollWorks > 0) {
-      ok(`gdarticlebody elements found: ${scrollWorks}`);
-    } else {
-      fail('gdarticlebody elements', 'no article bodies found (page might not be loaded yet)');
-    }
+    const articleCount = await evalJS(ws, 'document.querySelectorAll(".gdarticlebody").length');
+    if (articleCount > 0) ok('gdarticlebody elements found: ' + articleCount);
+    else fail('gdarticlebody elements', 'no article bodies found');
   } catch (e) {
     fail('gdarticlebody', e.message);
   }
 
   // Test 3: Wheel event handler
-  console.log('\n3. Wheel event handler');
+  console.log('\n3. Wheel event dispatch');
   try {
-    const handlerExists = await evalJS(ws, `
-      (function() {
-        // Check if our scroll zone code is loaded
-        // Look for the wheel event handler on document
-        var listeners = false;
-        // We can't directly inspect event listeners, but we can test
-        // that the page is responsive to JS
-        var article = document.querySelector('.gdarticlebody');
-        if (!article) return 'no article';
-        // Dispatch a test wheel event and check it doesn't crash
-        var evt = new WheelEvent('wheel', { deltaY: 100, clientX: 100, clientY: 100, bubbles: true });
-        article.dispatchEvent(evt);
-        return 'wheel dispatched';
-      })()
-    `);
-    ok(`Wheel event dispatch: ${handlerExists}`);
+    // Just verify we can fire events
+    const wheelResult = await evalJS(ws, '(function(){var a=document.querySelector(".gdarticlebody");if(!a)return"no";a.dispatchEvent(new WheelEvent("wheel",{deltaY:100,bubbles:true}));return"ok"})()');
+    ok('Wheel event dispatch: ' + wheelResult);
   } catch (e) {
     fail('wheel dispatch', e.message);
   }
@@ -151,40 +129,18 @@ async function runTests() {
   // Test 4: Dict panel CSS
   console.log('\n4. Dict panel CSS rules');
   try {
-    const cssCheck = await evalJS(ws, `
-      (function() {
-        var article = document.querySelector('.gdarticlebody');
-        if (!article) return 'no article';
-        var style = window.getComputedStyle(article);
-        return {
-          maxHeight: style.maxHeight,
-          overflowY: style.overflowY,
-          hasVar: style.maxHeight.includes('gd-panel-height') || style.maxHeight !== 'none'
-        };
-      })()
-    `);
-    if (cssCheck && typeof cssCheck === 'object') {
-      ok(`CSS max-height: ${cssCheck.maxHeight}, overflow-y: ${cssCheck.overflowY}`);
-    } else {
-      ok(`CSS check: ${JSON.stringify(cssCheck)}`);
-    }
+    const cssResult = await evalJS(ws, '(function(){var a=document.querySelector(".gdarticlebody");if(!a)return"no";var s=window.getComputedStyle(a);return JSON.stringify({maxH:s.maxHeight,overflow:s.overflowY})})()');
+    ok('CSS: ' + cssResult);
   } catch (e) {
     fail('CSS', e.message);
   }
 
-  // Test 5: Check that the C++ bridge is available
+  // Test 5: QWebChannel bridge
   console.log('\n5. QWebChannel bridge');
   try {
-    const bridge = await evalJS(ws, `
-      (function() {
-        return typeof articleview !== 'undefined' ? 'available' : 'missing';
-      })()
-    `);
-    if (bridge === 'available') {
-      ok('articleview QWebChannel bridge available');
-    } else {
-      fail('QWebChannel', 'articleview bridge not found');
-    }
+    const bridge = await evalJS(ws, 'typeof articleview !== "undefined" ? "available" : "missing"');
+    if (bridge === 'available') ok('articleview QWebChannel bridge available');
+    else fail('QWebChannel', 'articleview bridge not found: ' + bridge);
   } catch (e) {
     fail('QWebChannel', e.message);
   }

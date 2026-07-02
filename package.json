@@ -1,0 +1,28 @@
+{
+  "name": "goldendict-ng",
+  "version": "1.0.0",
+  "description": "[![Crowdin](https://badges.crowdin.net/goldendict-ng/localized.svg)](https://crowdin.com/project/goldendict-ng) [![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=xiaoyifang_goldendict-ng&metric=sqale_rating)](https://sonarcloud.io/summary/new_code?id=xiaoyifang_goldendict-ng) [![Build](https://github.com/xiaoyifang/goldendict-ng/actions/workflows/PR-check-cmake.yml/badge.svg)](https://github.com/xiaoyifang/goldendict-ng/actions/workflows/PR-check-cmake.yml)",
+  "main": ".prettierrc.js",
+  "directories": {
+    "doc": "docs",
+    "test": "test"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wuyun-1921/goldendict-ng.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/wuyun-1921/goldendict-ng/issues"
+  },
+  "homepage": "https://github.com/wuyun-1921/goldendict-ng#readme",
+  "dependencies": {
+    "ws": "^8.21.0"
+  }
+}
