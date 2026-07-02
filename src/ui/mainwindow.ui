@@ -46,7 +46,7 @@
     <item>
      <widget class="QSplitter" name="panelSplitter">
       <property name="orientation">
-       <enum>Qt::Vertical</enum>
+       <enum>Qt::Horizontal</enum>
       </property>
       <property name="visible">
        <bool>false</bool>
