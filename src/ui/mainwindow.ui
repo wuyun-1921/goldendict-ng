@@ -28,16 +28,6 @@
      <number>0</number>
     </property>
     <item>
-     <widget class="QSplitter" name="panelSplitter">
-      <property name="orientation">
-       <enum>Qt::Vertical</enum>
-      </property>
-      <property name="visible">
-       <bool>false</bool>
-      </property>
-     </widget>
-    </item>
-    <item>
      <widget class="MainTabWidget" name="tabWidget">
       <property name="currentIndex">
        <number>0</number>
@@ -50,6 +40,16 @@
       </property>
       <property name="elideMode">
        <enum>Qt::ElideRight</enum>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QSplitter" name="panelSplitter">
+      <property name="orientation">
+       <enum>Qt::Vertical</enum>
+      </property>
+      <property name="visible">
+       <bool>false</bool>
       </property>
      </widget>
     </item>
