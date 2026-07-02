@@ -1396,7 +1396,7 @@ void MainWindow::addPanel( ArticleView * av )
 
   panel->addTab( av, title );
   panel->setCurrentWidget( av );
-  av->setFocus(); // ensure webview has focus for keyboard shortcuts
+  av->focus(); // ensure webview has focus for keyboard shortcuts
   ui.panelSplitter->setVisible( true );
 
   distributePanelSizes();
