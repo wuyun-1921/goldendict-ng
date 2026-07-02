@@ -1443,33 +1443,21 @@ void MainWindow::removePanel( ArticleView * av )
 
 void MainWindow::distributePanelSizes()
 {
-  int count = ui.panelSplitter->count();
-  if ( count == 0 )
-    return;
-
-  // Use splitter's own available width, not main window width
-  int total = ( ui.panelSplitter->orientation() == Qt::Horizontal ) ? ui.panelSplitter->height()
-                                                                     : ui.panelSplitter->width();
-  if ( total <= 0 )
-    total = 800;
-
-  int defaultPct = cfg.preferences.sideBySideDefaultSplit;
-  QList< int > sizes;
-
-  if ( count == 1 ) {
-    // Single panel: take defaultPct% of canvas
-    int panelSize = total * defaultPct / 100;
-    sizes << panelSize;
-  }
-  else {
-    // Multiple panels: equal split
-    for ( int i = 0; i < count; i++ )
-      sizes << ( total / count );
+  int panelCount = 0;
+  for ( int i = 0; i < ui.panelSplitter->count(); i++ ) {
+    auto * panel = qobject_cast< QTabWidget * >( ui.panelSplitter->widget( i ) );
+    if ( panel && panel->count() > 0 )
+      panelCount++;
   }
 
-  for ( int i = 0; i < count; i++ )
+  // All visible widgets share space equally: panels + main tab widget
+  int totalWidgets = panelCount + 1; // +1 for main tab widget
+  ui.centralLayout->setStretchFactor( ui.tabWidget, 1 );
+  ui.centralLayout->setStretchFactor( ui.panelSplitter, panelCount );
+
+  // Within splitter: equal shares
+  for ( int i = 0; i < ui.panelSplitter->count(); i++ )
     ui.panelSplitter->setStretchFactor( i, 1 );
-  ui.panelSplitter->setSizes( sizes );
 }
 
 void MainWindow::togglePanel()
