@@ -206,26 +206,40 @@ if (
 
 // Split-scroll zone: left half scrolls page, right half scrolls article
 (function() {
-  let splitPercent = 50;
+  var splitPercent = 50;
 
-  if (typeof articleview !== 'undefined'
-      && typeof articleview.scrollZoneSplitChanged !== 'undefined') {
-    articleview.scrollZoneSplitChanged.connect(function(pct) {
-      splitPercent = pct;
-    });
+  function setupScrollZones() {
+    document.addEventListener('wheel', function(e) {
+      var article = e.target.closest('.gdarticlebody');
+      if (!article) return;
+
+      var rect = article.getBoundingClientRect();
+      var splitX = rect.left + (rect.width * splitPercent / 100);
+
+      if (e.clientX < splitX) {
+        // Left zone: scroll the outer page
+        e.preventDefault();
+        var scrollEl = document.scrollingElement || document.documentElement;
+        scrollEl.scrollTop += e.deltaY;
+      }
+      // Right zone: default — article scrolls via overflow-y: auto
+    }, { passive: false });
   }
 
-  document.addEventListener('wheel', function(e) {
-    var article = e.target.closest('.gdarticlebody');
-    if (!article) return;
-
-    var rect = article.getBoundingClientRect();
-    var splitX = rect.left + (rect.width * splitPercent / 100);
-
-    if (e.clientX < splitX) {
-      // Left zone: let outer page scroll
-      e.stopPropagation();
+  // Listen for C++ signal
+  try {
+    if (typeof articleview !== 'undefined'
+        && typeof articleview.scrollZoneSplitChanged !== 'undefined') {
+      articleview.scrollZoneSplitChanged.connect(function(pct) {
+        splitPercent = pct;
+      });
     }
-    // Right zone: default behavior scrolls inside the article
-  }, { passive: false });
+  } catch(e) {}
+
+  // Set up when DOM is ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', setupScrollZones);
+  } else {
+    setupScrollZones();
+  }
 })();
