@@ -1447,8 +1447,9 @@ void MainWindow::distributePanelSizes()
   if ( count == 0 )
     return;
 
-  // Use main window size if splitter hasn't been laid out yet
-  int total = ( ui.panelSplitter->orientation() == Qt::Horizontal ) ? height() : width();
+  // Use splitter's own available width, not main window width
+  int total = ( ui.panelSplitter->orientation() == Qt::Horizontal ) ? ui.panelSplitter->height()
+                                                                     : ui.panelSplitter->width();
   if ( total <= 0 )
     total = 800;
 
