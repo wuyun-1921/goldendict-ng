@@ -1406,9 +1406,12 @@ void MainWindow::addPanel( ArticleView * av )
   panel->setCurrentWidget( av );
   av->focus();
 
-  // Set stretch BEFORE making visible, so layout uses correct factors
-  distributePanelSizes();
   ui.panelSplitter->setVisible( true );
+
+  // Defer final sizing until after layout processes visibility change
+  QTimer::singleShot( 0, this, [ this ]() {
+    distributePanelSizes();
+  } );
 }
 
 void MainWindow::removePanel( ArticleView * av )
