@@ -1467,6 +1467,7 @@ void MainWindow::distributePanelSizes()
 
   ui.centralLayout->invalidate();
   ui.centralLayout->activate();
+}
 
 void MainWindow::togglePanel()
 {
