@@ -518,7 +518,7 @@ MainWindow::MainWindow( Config::Class & cfg_ ):
 
   // Close panel (move focused panel back to tab bar)
   closePanelAction.setText( tr("Close Panel") );
-  closePanelAction.setShortcut( QKeySequence("Ctrl+Shift+W") );
+  closePanelAction.setShortcut( QKeySequence("Ctrl+Shift+Q") );
   closePanelAction.setShortcutContext( Qt::WidgetWithChildrenShortcut );
   connect( &closePanelAction, &QAction::triggered, this, [this]() {
     // Find focused ArticleView in a panel
@@ -1450,9 +1450,8 @@ void MainWindow::distributePanelSizes()
       panelCount++;
   }
 
-  // All visible widgets share space equally: panels + main tab widget
-  int totalWidgets = panelCount + 1; // +1 for main tab widget
-  ui.centralLayout->setStretchFactor( ui.tabWidget, 1 );
+  // Main tab widget gets double weight vs panels
+  ui.centralLayout->setStretchFactor( ui.tabWidget, 2 );
   ui.centralLayout->setStretchFactor( ui.panelSplitter, panelCount );
 
   // Within splitter: equal shares
@@ -1466,17 +1465,20 @@ void MainWindow::togglePanel()
   if ( current ) {
     // Tab → Panel
     addPanel( current );
+    return;
   }
-  else {
-    // Find focused ArticleView in a panel
-    QWidget * w = ui.panelSplitter->focusWidget();
-    while ( w && !qobject_cast< ArticleView * >( w ) ) {
-      w = w->parentWidget();
-    }
-    current = qobject_cast< ArticleView * >( w );
-    if ( current ) {
-      removePanel( current );
-    }
+
+  // Find focused ArticleView in a panel
+  QWidget * focus = QApplication::focusWidget();
+  // Check if focus is inside a panel QTabWidget
+  while ( focus && !qobject_cast< QTabWidget * >( focus ) && focus != ui.panelSplitter ) {
+    focus = focus->parentWidget();
+  }
+  if ( auto * panel = qobject_cast< QTabWidget * >( focus ) ) {
+    current = qobject_cast< ArticleView * >( panel->currentWidget() );
+  }
+  if ( current ) {
+    removePanel( current );
   }
 }
 
