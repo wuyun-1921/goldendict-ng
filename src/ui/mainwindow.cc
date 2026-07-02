@@ -1467,23 +1467,26 @@ void MainWindow::togglePanel()
   if ( totalTabCount() <= 1 )
     return;
 
-  // Toggle: if any panel has tabs, move one back to main.
-  //          Otherwise move main's current to a new panel.
-  QWidget * panelWidget = nullptr;
-  for ( int i = 1; i < ui.panelSplitter->count(); i++ ) {
-    auto * pt = qobject_cast< QTabWidget * >( ui.panelSplitter->widget( i ) );
-    if ( pt && pt->count() > 0 ) {
-      panelWidget = pt->currentWidget();
+  // Find which panel (or main tab) has keyboard focus
+  QWidget * w      = QApplication::focusWidget();
+  QTabWidget * focusedPanel = nullptr;
+  while ( w && w != ui.panelSplitter ) {
+    if ( auto * pt = qobject_cast< QTabWidget * >( w ) ) {
+      if ( pt != ui.tabWidget )
+        focusedPanel = pt;
       break;
     }
+    w = w->parentWidget();
   }
 
-  if ( panelWidget ) {
-    auto * av = qobject_cast< ArticleView * >( panelWidget );
+  if ( focusedPanel && focusedPanel->currentWidget() ) {
+    // Focus in a panel → move its current tab back to main
+    auto * av = qobject_cast< ArticleView * >( focusedPanel->currentWidget() );
     if ( av )
       removePanel( av );
   }
-  else {
+  else if ( ui.tabWidget->currentWidget() ) {
+    // Focus in main tab or elsewhere → move main's current to panel
     auto * av = qobject_cast< ArticleView * >( ui.tabWidget->currentWidget() );
     if ( av )
       addPanel( av );
