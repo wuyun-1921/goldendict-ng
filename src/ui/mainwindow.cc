@@ -1516,11 +1516,17 @@ void MainWindow::togglePanel()
 
 void MainWindow::togglePanelOrientation()
 {
-  if ( ui.panelSplitter->orientation() == Qt::Horizontal ) {
-    ui.panelSplitter->setOrientation( Qt::Vertical );
-  }
-  else {
+  auto * outerSplitter = findChild< QSplitter * >( "outerSplitter" );
+
+  // Toggle both splitters: 1 row many cols <-> 1 col many rows
+  if ( ui.panelSplitter->orientation() == Qt::Vertical ) {
     ui.panelSplitter->setOrientation( Qt::Horizontal );
+    if ( outerSplitter )
+      outerSplitter->setOrientation( Qt::Horizontal );
+  } else {
+    ui.panelSplitter->setOrientation( Qt::Vertical );
+    if ( outerSplitter )
+      outerSplitter->setOrientation( Qt::Vertical );
   }
   distributePanelSizes();
 }
