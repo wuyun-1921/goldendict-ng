@@ -2007,7 +2007,7 @@ from Stardict, Babylon and GLS dictionaries</string>
           <item>
            <widget class="QCheckBox" name="openWebsitesInPanel">
             <property name="text">
-             <string>Open websites in panels</string>
+             <string>    Open websites in panels</string>
             </property>
            </widget>
           </item>
