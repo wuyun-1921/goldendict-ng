@@ -264,6 +264,7 @@ MainWindow::MainWindow( Config::Class & cfg_ ):
   ui.centralLayout->removeWidget( ui.tabWidget );
   ui.centralLayout->removeWidget( ui.panelSplitter );
   ui.panelSplitter->insertWidget( 0, ui.tabWidget );
+  ui.panelSplitter->setVisible( true ); // always visible now
   ui.centralLayout->addWidget( ui.panelSplitter );
 
   // Set own gesture recognizers
