@@ -259,6 +259,7 @@ MainWindow::MainWindow( Config::Class & cfg_ ):
 #endif
 
   ui.setupUi( this );
+  ui.panelSplitter->setOrientation( Qt::Vertical ); // side-by-side default
 
   // Set own gesture recognizers
 #ifndef Q_OS_MAC
