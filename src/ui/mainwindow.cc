@@ -261,6 +261,17 @@ MainWindow::MainWindow( Config::Class & cfg_ ):
   ui.setupUi( this );
   ui.panelSplitter->setOrientation( Qt::Horizontal ); // side-by-side (all columns)
 
+  // Replace QHBoxLayout with QSplitter — reliable sizing control
+  ui.centralLayout->removeWidget( ui.tabWidget );
+  ui.centralLayout->removeWidget( ui.panelSplitter );
+  auto * outer = new QSplitter( Qt::Horizontal, this );
+  outer->setObjectName( "outerSplitter" );
+  outer->addWidget( ui.tabWidget );
+  outer->addWidget( ui.panelSplitter );
+  outer->setStretchFactor( 0, 1 );
+  outer->setStretchFactor( 1, 0 ); // 0 while hidden
+  ui.centralLayout->addWidget( outer );
+
   // Set own gesture recognizers
 #ifndef Q_OS_MAC
   Gestures::registerRecognizers();
@@ -1395,8 +1406,9 @@ void MainWindow::addPanel( ArticleView * av )
   panel->setCurrentWidget( av );
   av->focus();
 
-  ui.panelSplitter->setVisible( true );
+  // Set stretch BEFORE making visible, so layout uses correct factors
   distributePanelSizes();
+  ui.panelSplitter->setVisible( true );
 }
 
 void MainWindow::removePanel( ArticleView * av )
@@ -1440,24 +1452,48 @@ void MainWindow::distributePanelSizes()
       panelCount++;
   }
 
-  // Dynamic stretch: side-by-side = 1:(N) columns, stacked = 1:1
-  if ( ui.panelSplitter->orientation() == Qt::Horizontal ) {
-    ui.centralLayout->setStretchFactor( ui.tabWidget, 1 );
-    ui.centralLayout->setStretchFactor( ui.panelSplitter, panelCount > 0 ? panelCount : 0 );
-  } else {
-    ui.centralLayout->setStretchFactor( ui.tabWidget, 1 );
-    ui.centralLayout->setStretchFactor( ui.panelSplitter, 1 );
+  auto * outer = findChild< QSplitter * >( "outerSplitter" );
+
+  if ( panelCount == 0 ) {
+    // No panels: tab gets all space
+    if ( outer ) {
+      outer->setStretchFactor( 0, 1 );
+      outer->setStretchFactor( 1, 0 );
+      outer->setSizes( { 1, 0 } );
+    }
+    ui.centralWidget->setMinimumWidth( 0 );
+    return;
+  }
+
+  // Dynamic stretch: side-by-side = 1:N, stacked = 1:1
+  if ( outer ) {
+    if ( ui.panelSplitter->orientation() == Qt::Horizontal ) {
+      outer->setSizes( { 1, panelCount } );
+      outer->setStretchFactor( 0, 1 );
+      outer->setStretchFactor( 1, panelCount );
+    } else {
+      outer->setSizes( { 1, 1 } );
+      outer->setStretchFactor( 0, 1 );
+      outer->setStretchFactor( 1, 1 );
+    }
   }
 
   // Within panel splitter: equal shares
-  for ( int i = 0; i < ui.panelSplitter->count(); i++ )
+  int count = ui.panelSplitter->count();
+  for ( int i = 0; i < count; i++ )
     ui.panelSplitter->setStretchFactor( i, 1 );
+  if ( count > 0 ) {
+    int total = ( ui.panelSplitter->orientation() == Qt::Horizontal )
+                  ? ui.panelSplitter->width() : ui.panelSplitter->height();
+    if ( total > 0 ) {
+      QList< int > sizes;
+      for ( int i = 0; i < count; i++ )
+        sizes << total / count;
+      ui.panelSplitter->setSizes( sizes );
+    }
+  }
 
-  // Minimum centralWidget width so window grows, never eats dock space
-  if ( panelCount > 0 )
-    ui.centralWidget->setMinimumWidth( ( 1 + panelCount ) * 200 );
-  else
-    ui.centralWidget->setMinimumWidth( 0 );
+  ui.centralWidget->setMinimumWidth( ( 1 + panelCount ) * 200 );
 }
 
 void MainWindow::togglePanel()
