@@ -261,6 +261,8 @@ MainWindow::MainWindow( Config::Class & cfg_ ):
   ui.setupUi( this );
   ui.panelSplitter->setOrientation( Qt::Horizontal ); // side-by-side (all columns)
   ui.panelSplitter->setVisible( true ); // always visible, width=0 when empty
+  ui.centralLayout->setStretchFactor( ui.tabWidget, 1 );
+  ui.centralLayout->setStretchFactor( ui.panelSplitter, 0 );
 
   // Set own gesture recognizers
 #ifndef Q_OS_MAC
@@ -1441,7 +1443,11 @@ void MainWindow::distributePanelSizes()
   }
 
   // Side-by-side: each column = 1/(1+panelCount). Stacked: 2 columns 50/50.
-  if ( ui.panelSplitter->orientation() == Qt::Horizontal ) {
+  // Zero panels: tab gets all space.
+  if ( panelCount == 0 ) {
+    ui.centralLayout->setStretchFactor( ui.tabWidget, 1 );
+    ui.centralLayout->setStretchFactor( ui.panelSplitter, 0 );
+  } else if ( ui.panelSplitter->orientation() == Qt::Horizontal ) {
     ui.centralLayout->setStretchFactor( ui.tabWidget, 1 );
     ui.centralLayout->setStretchFactor( ui.panelSplitter, panelCount );
   } else {
