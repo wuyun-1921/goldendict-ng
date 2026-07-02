@@ -1429,6 +1429,7 @@ void MainWindow::removePanel( ArticleView * av )
   // Add back to main tab widget
   int newIdx = ui.tabWidget->addTab( av, title );
   ui.tabWidget->setCurrentIndex( newIdx );
+  av->focus(); // ensure keyboard focus stays on article view
 
   // Clean up empty panel
   if ( targetPanel && targetPanel->count() == 0 ) {
