@@ -1467,18 +1467,29 @@ void MainWindow::removePanel( ArticleView * av )
 
 void MainWindow::distributePanelSizes()
 {
-  // Tab area and panel area always 50/50
   auto * outerSplitter = findChild< QSplitter * >( "outerSplitter" );
-  if ( outerSplitter ) {
-    outerSplitter->setSizes( { 1, 1 } );
+  if ( outerSplitter && outerSplitter->count() > 0 ) {
+    // setSizes takes pixel values, not ratios
+    int total = ( outerSplitter->orientation() == Qt::Vertical )
+                  ? outerSplitter->width() : outerSplitter->height();
+    if ( total > 0 ) {
+      QList< int > sizes;
+      for ( int i = 0; i < outerSplitter->count(); i++ )
+        sizes << total / outerSplitter->count();
+      outerSplitter->setSizes( sizes );
+    }
   }
 
-  // Within splitter: equal shares
-  QList< int > panelSizes;
-  for ( int i = 0; i < ui.panelSplitter->count(); i++ )
-    panelSizes << 1;
-  if ( !panelSizes.isEmpty() )
-    ui.panelSplitter->setSizes( panelSizes );
+  if ( ui.panelSplitter->count() > 0 ) {
+    int total = ( ui.panelSplitter->orientation() == Qt::Vertical )
+                  ? ui.panelSplitter->width() : ui.panelSplitter->height();
+    if ( total > 0 ) {
+      QList< int > sizes;
+      for ( int i = 0; i < ui.panelSplitter->count(); i++ )
+        sizes << total / ui.panelSplitter->count();
+      ui.panelSplitter->setSizes( sizes );
+    }
+  }
 }
 
 void MainWindow::togglePanel()
