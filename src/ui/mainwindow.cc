@@ -1388,6 +1388,7 @@ void MainWindow::addPanel( ArticleView * av )
 
   // Defer size fix until after layout gives us real dimensions
   QTimer::singleShot( 0, this, [ this ]() {
+    ui.panelSplitter->setOrientation( Qt::Vertical );
     QList< int > sizes;
     int total = ui.panelSplitter->width();
     if ( total > 0 ) {
@@ -1455,11 +1456,17 @@ void MainWindow::distributePanelSizes()
       panelCount++;
   }
 
-  // Main tab widget and panels split window equally
-  ui.centralLayout->setStretchFactor( ui.tabWidget, 1 );
-  ui.centralLayout->setStretchFactor( ui.panelSplitter, 1 );
+  // Side-by-side: each panel is a column → tab stretch=1, panels stretch=panelCount
+  // Stacked: panels share single column → tab stretch=1, panels stretch=1
+  if ( ui.panelSplitter->orientation() == Qt::Vertical ) {
+    ui.centralLayout->setStretchFactor( ui.tabWidget, 1 );
+    ui.centralLayout->setStretchFactor( ui.panelSplitter, panelCount );
+  } else {
+    ui.centralLayout->setStretchFactor( ui.tabWidget, 1 );
+    ui.centralLayout->setStretchFactor( ui.panelSplitter, 1 );
+  }
 
-  // Within splitter: equal shares via stretch factors (let Qt layout engine compute sizes)
+  // Within splitter: equal shares via stretch factors
   for ( int i = 0; i < ui.panelSplitter->count(); i++ )
     ui.panelSplitter->setStretchFactor( i, 1 );
 }
