@@ -1349,10 +1349,18 @@ MainWindow::~MainWindow()
 
 void MainWindow::addPanel( ArticleView * av )
 {
+  // Save title before removing from main tab widget
+  QString title = av->windowTitle();
+  int mainIdx   = ui.tabWidget->indexOf( av );
+  if ( mainIdx >= 0 && title.isEmpty() ) {
+    title = ui.tabWidget->tabText( mainIdx );
+  }
+  if ( title.isEmpty() )
+    title = tr( "(untitled)" );
+
   // Remove from main tab widget
-  int idx = ui.tabWidget->indexOf( av );
-  if ( idx >= 0 ) {
-    ui.tabWidget->removeTab( idx );
+  if ( mainIdx >= 0 ) {
+    ui.tabWidget->removeTab( mainIdx );
   }
 
   // Always create a new panel (appears to the right of existing ones)
@@ -1365,9 +1373,9 @@ void MainWindow::addPanel( ArticleView * av )
     auto * avClose = qobject_cast< ArticleView * >( w );
     if ( !avClose )
       return;
+    QString tabTitle = panel->tabText( tabIndex );
     panel->removeTab( tabIndex );
-    // Return tab to main tab bar
-    int newIdx = ui.tabWidget->addTab( avClose, avClose->windowTitle() );
+    int newIdx = ui.tabWidget->addTab( avClose, tabTitle );
     ui.tabWidget->setCurrentIndex( newIdx );
     // Last tab closed → remove panel
     if ( panel->count() == 0 ) {
@@ -1381,7 +1389,7 @@ void MainWindow::addPanel( ArticleView * av )
   } );
   ui.panelSplitter->addWidget( panel );
 
-  panel->addTab( av, av->windowTitle() );
+  panel->addTab( av, title );
   panel->setCurrentWidget( av );
   ui.panelSplitter->setVisible( true );
   distributePanelSizes();
@@ -1389,7 +1397,8 @@ void MainWindow::addPanel( ArticleView * av )
 
 void MainWindow::removePanel( ArticleView * av )
 {
-  // Find and remove from panel tab widget
+  // Save title before removing from panel
+  QString title = av->windowTitle();
   QTabWidget * targetPanel = nullptr;
   for ( int i = 0; i < ui.panelSplitter->count(); i++ ) {
     auto * panel = qobject_cast< QTabWidget * >( ui.panelSplitter->widget( i ) );
@@ -1397,14 +1406,18 @@ void MainWindow::removePanel( ArticleView * av )
       continue;
     int tabIdx = panel->indexOf( av );
     if ( tabIdx >= 0 ) {
+      if ( title.isEmpty() )
+        title = panel->tabText( tabIdx );
       panel->removeTab( tabIdx );
       targetPanel = panel;
       break;
     }
   }
+  if ( title.isEmpty() )
+    title = tr( "(untitled)" );
 
   // Add back to main tab widget
-  int newIdx = ui.tabWidget->addTab( av, av->windowTitle() );
+  int newIdx = ui.tabWidget->addTab( av, title );
   ui.tabWidget->setCurrentIndex( newIdx );
 
   // Clean up empty panel
@@ -2354,11 +2367,22 @@ void MainWindow::titleChanged( ArticleView * view, const QString & title )
   escaped                     = Utils::ellipsizeString( escaped, maxTabTitleLength );
 
   int index = ui.tabWidget->indexOf( view );
-  if ( !escaped.isEmpty() ) {
+  if ( index >= 0 && !escaped.isEmpty() ) {
     ui.tabWidget->setTabText( index, escaped );
   }
 
-  if ( index == ui.tabWidget->currentIndex() ) {
+  // Also update title in panel tab widgets
+  for ( int p = 0; p < ui.panelSplitter->count(); p++ ) {
+    auto * panel = qobject_cast< QTabWidget * >( ui.panelSplitter->widget( p ) );
+    if ( !panel )
+      continue;
+    int pidx = panel->indexOf( view );
+    if ( pidx >= 0 && !escaped.isEmpty() ) {
+      panel->setTabText( pidx, escaped );
+    }
+  }
+
+  if ( index >= 0 && index == ui.tabWidget->currentIndex() ) {
     updateFavIcon( title );
 
     updateWindowTitle();
