@@ -1440,14 +1440,24 @@ void MainWindow::distributePanelSizes()
       panelCount++;
   }
 
+  // Dynamic stretch: side-by-side = 1:(N) columns, stacked = 1:1
+  if ( ui.panelSplitter->orientation() == Qt::Horizontal ) {
+    ui.centralLayout->setStretchFactor( ui.tabWidget, 1 );
+    ui.centralLayout->setStretchFactor( ui.panelSplitter, panelCount > 0 ? panelCount : 0 );
+  } else {
+    ui.centralLayout->setStretchFactor( ui.tabWidget, 1 );
+    ui.centralLayout->setStretchFactor( ui.panelSplitter, 1 );
+  }
+
   // Within panel splitter: equal shares
   for ( int i = 0; i < ui.panelSplitter->count(); i++ )
     ui.panelSplitter->setStretchFactor( i, 1 );
 
-  // Enforce minimum width so window grows, never eats dock space
-  // Each child needs at least ~200px; total = (1 tab + N panels) * 200
-  int minW = ( 1 + panelCount ) * 200;
-  ui.centralWidget->setMinimumWidth( minW );
+  // Minimum centralWidget width so window grows, never eats dock space
+  if ( panelCount > 0 )
+    ui.centralWidget->setMinimumWidth( ( 1 + panelCount ) * 200 );
+  else
+    ui.centralWidget->setMinimumWidth( 0 );
 }
 
 void MainWindow::togglePanel()
