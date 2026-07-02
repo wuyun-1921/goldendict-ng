@@ -545,6 +545,21 @@ MainWindow::MainWindow( Config::Class & cfg_ ):
   } );
   closePanelAction.setShortcut( QKeySequence( "Ctrl+Shift+Q" ) );
 
+  // Article navigation (global to avoid ambiguous shortcut with panels)
+  articleUpAction.setShortcut( QKeySequence( "Alt+Up" ) );
+  addGlobalAction( &articleUpAction, [ this ]() {
+    auto * av = getCurrentArticleView();
+    if ( av )
+      av->moveOneArticleUp();
+  } );
+
+  articleDownAction.setShortcut( QKeySequence( "Alt+Down" ) );
+  addGlobalAction( &articleDownAction, [ this ]() {
+    auto * av = getCurrentArticleView();
+    if ( av )
+      av->moveOneArticleDown();
+  } );
+
   closeCurrentTabAction.setShortcutContext( Qt::WidgetWithChildrenShortcut );
   closeCurrentTabAction.setShortcut( QKeySequence( "Ctrl+W" ) );
   closeCurrentTabAction.setText( tr( "Close current tab" ) );
@@ -1398,6 +1413,9 @@ void MainWindow::addPanel( ArticleView * av )
   panel->setCurrentWidget( av );
   av->focus(); // ensure webview has focus for keyboard shortcuts
   ui.panelSplitter->setVisible( true );
+
+  // Default: side-by-side panels (Qt::Vertical = horizontal arrangement)
+  ui.panelSplitter->setOrientation( Qt::Vertical );
 
   distributePanelSizes();
 }

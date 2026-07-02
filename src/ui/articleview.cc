@@ -184,12 +184,8 @@ ArticleView::ArticleView( QWidget * parent,
   webview->addAction( &pasteAction );
   connect( &pasteAction, &QAction::triggered, this, &ArticleView::pasteTriggered );
 
-  articleUpAction.setShortcut( QKeySequence( "Alt+Up" ) );
-  webview->addAction( &articleUpAction );
+  // Alt+Up/Down are now global shortcuts in MainWindow
   connect( &articleUpAction, &QAction::triggered, this, &ArticleView::moveOneArticleUp );
-
-  articleDownAction.setShortcut( QKeySequence( "Alt+Down" ) );
-  webview->addAction( &articleDownAction );
   connect( &articleDownAction, &QAction::triggered, this, &ArticleView::moveOneArticleDown );
 
   selectCurrentArticleAction.setShortcut( QKeySequence( "Ctrl+Shift+A" ) );

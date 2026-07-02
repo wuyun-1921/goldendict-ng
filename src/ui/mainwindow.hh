@@ -127,7 +127,8 @@ private:
   QAction escAction, focusTranslateLineAction, addTabAction, closeCurrentTabAction, closeAllTabAction,
     closeRestTabAction, switchToNextTabAction, switchToPrevTabAction, showDictBarNamesAction, toggleMenuBarAction,
     lockPanelsAction, focusHeadwordsDlgAction, focusArticleViewAction, addAllTabToFavoritesAction,
-    togglePanelAction, togglePanelOrientationAction, closePanelAction;
+    togglePanelAction, togglePanelOrientationAction, closePanelAction,
+    articleUpAction, articleDownAction;
 
   QAction useSmallIconsInToolbarsAction, useLargeIconsInToolbarsAction, useNormalIconsInToolbarsAction;
 
