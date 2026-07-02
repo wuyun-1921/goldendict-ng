@@ -1439,11 +1439,11 @@ void MainWindow::distributePanelSizes()
       panelCount++;
   }
 
-  // Main tab widget gets double weight vs panels
-  ui.centralLayout->setStretchFactor( ui.tabWidget, 2 );
+  // Main tab widget and panels split window equally
+  ui.centralLayout->setStretchFactor( ui.tabWidget, 1 );
   ui.centralLayout->setStretchFactor( ui.panelSplitter, panelCount );
 
-  // Within splitter: equal shares
+  // Within splitter: equal shares via stretch factors (let Qt layout engine compute sizes)
   for ( int i = 0; i < ui.panelSplitter->count(); i++ )
     ui.panelSplitter->setStretchFactor( i, 1 );
 }
