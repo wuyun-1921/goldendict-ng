@@ -214,15 +214,17 @@ if (
       if (!article) return;
 
       var rect = article.getBoundingClientRect();
-      var splitX = rect.left + (rect.width * splitPercent / 100);
+      var relX = (e.clientX - rect.left) / rect.width; // 0..1 relative position
 
-      if (e.clientX < splitX) {
-        // Left zone: scroll the outer page
-        e.preventDefault();
-        var scrollEl = document.scrollingElement || document.documentElement;
-        scrollEl.scrollTop += e.deltaY;
+      // Middle 50%: scroll inside article. Outer 25% each side: scroll page.
+      if (relX >= 0.25 && relX <= 0.75) {
+        // Middle zone: default — article scrolls via overflow-y: auto
+        return;
       }
-      // Right zone: default — article scrolls via overflow-y: auto
+      // Peripheral zone: scroll the outer page
+      e.preventDefault();
+      var scrollEl = document.scrollingElement || document.documentElement;
+      scrollEl.scrollTop += e.deltaY;
     }, { passive: false });
   }
 
