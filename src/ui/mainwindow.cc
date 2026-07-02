@@ -267,6 +267,11 @@ MainWindow::MainWindow( Config::Class & cfg_ ):
   ui.panelSplitter->setVisible( true ); // always visible now
   ui.centralLayout->addWidget( ui.panelSplitter );
 
+  // Force side-by-side default after layout finishes
+  QTimer::singleShot( 0, this, [ this ]() {
+    ui.panelSplitter->setOrientation( Qt::Vertical );
+  } );
+
   // Set own gesture recognizers
 #ifndef Q_OS_MAC
   Gestures::registerRecognizers();
@@ -1483,7 +1488,7 @@ void MainWindow::togglePanel()
     if ( av )
       removePanel( av );
   }
-  else if ( ui.tabWidget->count() > 1 && ui.tabWidget->isAncestorOf( focus ) ) {
+  else if ( totalTabCount() > 1 && ui.tabWidget->isAncestorOf( focus ) ) {
     // Focus is on main tab widget area, and there are spare tabs → move to panel
     auto * av = qobject_cast< ArticleView * >( ui.tabWidget->currentWidget() );
     if ( av )
@@ -1499,6 +1504,17 @@ void MainWindow::togglePanelOrientation()
   else
     ui.panelSplitter->setOrientation( Qt::Vertical );
   distributePanelSizes();
+}
+
+int MainWindow::totalTabCount() const
+{
+  int count = ui.tabWidget->count();
+  for ( int i = 1; i < ui.panelSplitter->count(); i++ ) {
+    auto * panel = qobject_cast< QTabWidget * >( ui.panelSplitter->widget( i ) );
+    if ( panel )
+      count += panel->count();
+  }
+  return count;
 }
 
 int MainWindow::panelCount() const

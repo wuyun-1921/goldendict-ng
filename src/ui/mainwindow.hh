@@ -58,7 +58,8 @@ public:
   void closePanelTab();
   void togglePanel();
   void togglePanelOrientation();
-  int panelCount() const;
+  int totalTabCount() const;
+int panelCount() const;
   void distributePanelSizes();
 
   enum class WildcardPolicy {
