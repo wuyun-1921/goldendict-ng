@@ -1461,25 +1461,35 @@ void MainWindow::distributePanelSizes()
 
 void MainWindow::togglePanel()
 {
-  ArticleView * current = qobject_cast< ArticleView * >( ui.tabWidget->currentWidget() );
-  if ( current ) {
-    // Tab → Panel
-    addPanel( current );
-    return;
+  // Determine where keyboard focus is
+  QWidget * focus = QApplication::focusWidget();
+  bool focusInPanel = false;
+  QTabWidget * focusedPanel = nullptr;
+
+  // Walk up to find if focus is inside a panel QTabWidget
+  QWidget * w = focus;
+  while ( w && w != ui.panelSplitter && w != ui.tabWidget ) {
+    if ( auto * pt = qobject_cast< QTabWidget * >( w ) ) {
+      focusedPanel = pt;
+      focusInPanel = true;
+      break;
+    }
+    w = w->parentWidget();
   }
 
-  // Find focused ArticleView in a panel
-  QWidget * focus = QApplication::focusWidget();
-  // Check if focus is inside a panel QTabWidget
-  while ( focus && !qobject_cast< QTabWidget * >( focus ) && focus != ui.panelSplitter ) {
-    focus = focus->parentWidget();
+  if ( focusInPanel && focusedPanel ) {
+    // Focus is in a panel → move its current tab back to main tab bar
+    auto * av = qobject_cast< ArticleView * >( focusedPanel->currentWidget() );
+    if ( av )
+      removePanel( av );
   }
-  if ( auto * panel = qobject_cast< QTabWidget * >( focus ) ) {
-    current = qobject_cast< ArticleView * >( panel->currentWidget() );
+  else if ( ui.tabWidget->count() > 1 && ui.tabWidget->isAncestorOf( focus ) ) {
+    // Focus is on main tab widget area, and there are spare tabs → move to panel
+    auto * av = qobject_cast< ArticleView * >( ui.tabWidget->currentWidget() );
+    if ( av )
+      addPanel( av );
   }
-  if ( current ) {
-    removePanel( current );
-  }
+  // else: no action (focus elsewhere, or single tab, or no panel to return from)
 }
 
 void MainWindow::togglePanelOrientation()
@@ -1490,6 +1500,7 @@ void MainWindow::togglePanelOrientation()
   else {
     ui.panelSplitter->setOrientation( Qt::Horizontal );
   }
+  distributePanelSizes();
 }
 
 int MainWindow::panelCount() const
