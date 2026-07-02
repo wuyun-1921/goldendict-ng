@@ -1480,8 +1480,8 @@ void MainWindow::togglePanel()
     if ( av )
       removePanel( av );
   }
-  else if ( totalTabCount() > 1 && ui.tabWidget->isAncestorOf( focus ) ) {
-    // Focus is on main tab widget area, and there are spare tabs → move to panel
+  else if ( ui.tabWidget->currentWidget() ) {
+    // Focus is in main tab → move current tab to panel
     auto * av = qobject_cast< ArticleView * >( ui.tabWidget->currentWidget() );
     if ( av )
       addPanel( av );
