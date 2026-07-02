@@ -260,6 +260,21 @@ MainWindow::MainWindow( Config::Class & cfg_ ):
 
   ui.setupUi( this );
 
+  // Replace QHBoxLayout with QSplitter for tab area and panel area
+  // (QHBoxLayout stretch factors don't control initial sizes)
+  auto * outerSplitter = new QSplitter( Qt::Horizontal, this );
+  outerSplitter->setObjectName( "outerSplitter" );
+  // Remove widgets from centralLayout
+  ui.centralLayout->removeWidget( ui.tabWidget );
+  ui.centralLayout->removeWidget( ui.panelSplitter );
+  // Add to outer splitter
+  outerSplitter->addWidget( ui.tabWidget );
+  outerSplitter->addWidget( ui.panelSplitter );
+  outerSplitter->setStretchFactor( 0, 1 );
+  outerSplitter->setStretchFactor( 1, 1 );
+  // Add splitter back to layout
+  ui.centralLayout->addWidget( outerSplitter );
+
   // Set own gesture recognizers
 #ifndef Q_OS_MAC
   Gestures::registerRecognizers();
@@ -1383,17 +1398,8 @@ void MainWindow::addPanel( ArticleView * av )
   panel->setCurrentWidget( av );
   ui.panelSplitter->setVisible( true );
 
-  // QSplitter stretch factors control resize, not initial sizes — force equal
-  QTimer::singleShot( 0, this, [ this ]() {
-    QList< int > sizes;
-    int total = ui.panelSplitter->width();
-    if ( total > 0 ) {
-      int each = total / ui.panelSplitter->count();
-      for ( int i = 0; i < ui.panelSplitter->count(); i++ )
-        sizes << each;
-      ui.panelSplitter->setSizes( sizes );
-    }
-  } );
+  // Default: stacked panels (Qt::Horizontal = top/bottom arrangement)
+  ui.panelSplitter->setOrientation( Qt::Horizontal );
 
   distributePanelSizes();
 }
@@ -1445,28 +1451,18 @@ void MainWindow::removePanel( ArticleView * av )
 
 void MainWindow::distributePanelSizes()
 {
-  int panelCount = 0;
-  for ( int i = 0; i < ui.panelSplitter->count(); i++ ) {
-    auto * panel = qobject_cast< QTabWidget * >( ui.panelSplitter->widget( i ) );
-    if ( panel && panel->count() > 0 )
-      panelCount++;
+  // Tab area and panel area always 50/50
+  auto * outerSplitter = findChild< QSplitter * >( "outerSplitter" );
+  if ( outerSplitter ) {
+    outerSplitter->setSizes( { 1, 1 } );
   }
 
-  // Side-by-side: each panel is a column → tab=1, panels=panelCount (e.g. 1+2=3 cols)
-  // Stacked: panels share one column → tab=1, panels=1 (2 cols)
-  if ( ui.panelSplitter->orientation() == Qt::Vertical ) {
-    ui.centralLayout->setStretchFactor( ui.tabWidget, 1 );
-    ui.centralLayout->setStretchFactor( ui.panelSplitter, panelCount );
-  } else {
-    ui.centralLayout->setStretchFactor( ui.tabWidget, 1 );
-    ui.centralLayout->setStretchFactor( ui.panelSplitter, 1 );
-  }
-
+  // Within splitter: equal shares
+  QList< int > panelSizes;
   for ( int i = 0; i < ui.panelSplitter->count(); i++ )
-    ui.panelSplitter->setStretchFactor( i, 1 );
-
-  ui.centralLayout->invalidate();
-  ui.centralLayout->activate();
+    panelSizes << 1;
+  if ( !panelSizes.isEmpty() )
+    ui.panelSplitter->setSizes( panelSizes );
 }
 
 void MainWindow::togglePanel()
