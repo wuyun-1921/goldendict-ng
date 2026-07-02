@@ -1401,6 +1401,9 @@ void MainWindow::addPanel( ArticleView * av )
   panel->setCurrentWidget( av );
   av->focus();
 
+  // Ensure side-by-side default
+  ui.panelSplitter->setOrientation( Qt::Vertical );
+
   distributePanelSizes();
 }
 
