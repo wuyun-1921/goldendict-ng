@@ -1410,7 +1410,7 @@ void MainWindow::removePanel( ArticleView * av )
   // Save title before removing from panel
   QString title = av->windowTitle();
   QTabWidget * targetPanel = nullptr;
-  for ( int i = 1; i < ui.panelSplitter->count(); i++ ) { // skip tabWidget at 0
+  for ( int i = 0; i < ui.panelSplitter->count(); i++ ) {
     auto * panel = qobject_cast< QTabWidget * >( ui.panelSplitter->widget( i ) );
     if ( !panel )
       continue;
@@ -1520,7 +1520,7 @@ void MainWindow::togglePanelOrientation()
 int MainWindow::totalTabCount() const
 {
   int count = ui.tabWidget->count();
-  for ( int i = 1; i < ui.panelSplitter->count(); i++ ) {
+  for ( int i = 0; i < ui.panelSplitter->count(); i++ ) {
     auto * panel = qobject_cast< QTabWidget * >( ui.panelSplitter->widget( i ) );
     if ( panel )
       count += panel->count();
@@ -1531,7 +1531,7 @@ int MainWindow::totalTabCount() const
 int MainWindow::panelCount() const
 {
   int count = 0;
-  for ( int i = 1; i < ui.panelSplitter->count(); i++ ) { // skip tabWidget at 0
+  for ( int i = 0; i < ui.panelSplitter->count(); i++ ) {
     auto * panel = qobject_cast< QTabWidget * >( ui.panelSplitter->widget( i ) );
     if ( panel && panel->count() > 0 )
       count++;
