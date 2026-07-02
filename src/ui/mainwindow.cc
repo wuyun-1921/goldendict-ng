@@ -1452,8 +1452,8 @@ void MainWindow::distributePanelSizes()
       panelCount++;
   }
 
-  // Side-by-side: each panel is a column → tab stretch=1, panels stretch=panelCount
-  // Stacked: panels share single column → tab stretch=1, panels stretch=1
+  // Side-by-side: each panel is a column → tab=1, panels=panelCount (e.g. 1+2=3 cols)
+  // Stacked: panels share one column → tab=1, panels=1 (2 cols)
   if ( ui.panelSplitter->orientation() == Qt::Vertical ) {
     ui.centralLayout->setStretchFactor( ui.tabWidget, 1 );
     ui.centralLayout->setStretchFactor( ui.panelSplitter, panelCount );
@@ -1462,10 +1462,11 @@ void MainWindow::distributePanelSizes()
     ui.centralLayout->setStretchFactor( ui.panelSplitter, 1 );
   }
 
-  // Within splitter: equal shares via stretch factors
   for ( int i = 0; i < ui.panelSplitter->count(); i++ )
     ui.panelSplitter->setStretchFactor( i, 1 );
-}
+
+  ui.centralLayout->invalidate();
+  ui.centralLayout->activate();
 
 void MainWindow::togglePanel()
 {
