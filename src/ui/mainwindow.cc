@@ -259,7 +259,7 @@ MainWindow::MainWindow( Config::Class & cfg_ ):
 #endif
 
   ui.setupUi( this );
-  ui.panelSplitter->setOrientation( Qt::Vertical ); // side-by-side default
+  ui.panelSplitter->setOrientation( Qt::Horizontal ); // side-by-side (all columns)
 
   // Move tabWidget into panelSplitter — single splitter, all items equal
   ui.centralLayout->removeWidget( ui.tabWidget );
@@ -1446,7 +1446,7 @@ void MainWindow::distributePanelSizes()
   for ( int i = 0; i < count; i++ )
     ui.panelSplitter->setStretchFactor( i, 1 );
 
-  int total = ( ui.panelSplitter->orientation() == Qt::Vertical )
+  int total = ( ui.panelSplitter->orientation() == Qt::Horizontal )
                 ? ui.panelSplitter->width() : ui.panelSplitter->height();
   if ( total > 0 ) {
     QList< int > sizes;
@@ -1491,10 +1491,10 @@ void MainWindow::togglePanel()
 
 void MainWindow::togglePanelOrientation()
 {
-  if ( ui.panelSplitter->orientation() == Qt::Vertical )
-    ui.panelSplitter->setOrientation( Qt::Horizontal );
-  else
+  if ( ui.panelSplitter->orientation() == Qt::Horizontal )
     ui.panelSplitter->setOrientation( Qt::Vertical );
+  else
+    ui.panelSplitter->setOrientation( Qt::Horizontal );
   distributePanelSizes();
 }
 
