@@ -384,6 +384,12 @@ struct Preferences
   // On Windows, this field exists but is not used (Windows uses its own styling system).
   QString interfaceStyle;
 
+  // Dict panel height limit
+  bool dictPanelEnabled;
+  int dictPanelMaxHeight;
+  QString dictPanelHeightUnit;
+  int dictPanelScrollZone;
+
   Preferences();
 };
 
