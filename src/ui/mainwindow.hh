@@ -52,6 +52,13 @@ public:
   /// Set group for main/popup window
   void setGroupByName( const QString & name, bool main_window );
 
+  // Side-by-side panels
+  void addPanel( ArticleView * av );
+  void removePanel( ArticleView * av );
+  void togglePanel();
+  void togglePanelOrientation();
+  int panelCount() const;
+
   enum class WildcardPolicy {
     EscapeWildcards,
     WildcardsAreAlreadyEscaped
