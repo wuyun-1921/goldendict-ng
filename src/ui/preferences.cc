@@ -274,8 +274,6 @@ updateDictPanelWidgets();
 
 auto updateWebsitePanelOption = [ this ]() {
   ui.openWebsitesInPanel->setEnabled( ui.openWebsiteInNewTab->isChecked() );
-  if ( !ui.openWebsiteInNewTab->isChecked() )
-    ui.openWebsitesInPanel->setChecked( false );
 };
 connect( ui.openWebsiteInNewTab, &QCheckBox::toggled, this, updateWebsitePanelOption );
 updateWebsitePanelOption();
@@ -403,7 +401,7 @@ updateWebsitePanelOption();
   ui.removeInvalidIndexOnExit->setChecked( p.removeInvalidIndexOnExit );
   ui.enableApplicationLog->setChecked( p.enableApplicationLog );
   ui.openWebsiteInNewTab->setChecked( p.openWebsiteInNewTab );
-ui.openWebsitesInPanel->setChecked( p.openWebsitesInPanel && p.openWebsiteInNewTab );
+ui.openWebsitesInPanel->setChecked( p.openWebsitesInPanel );
 ui.openWebsitesInPanel->setEnabled( p.openWebsiteInNewTab );
   ui.suppressWebDialogs->setChecked( p.suppressWebDialogs );
   ui.enableJavaScriptClipboard->setChecked( p.enableJavaScriptClipboardAccess );
