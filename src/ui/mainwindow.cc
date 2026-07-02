@@ -1383,6 +1383,18 @@ void MainWindow::addPanel( ArticleView * av )
   panel->setCurrentWidget( av );
   ui.panelSplitter->setVisible( true );
 
+  // QSplitter stretch factors control resize, not initial sizes — force equal
+  QTimer::singleShot( 0, this, [ this ]() {
+    QList< int > sizes;
+    int total = ui.panelSplitter->width();
+    if ( total > 0 ) {
+      int each = total / ui.panelSplitter->count();
+      for ( int i = 0; i < ui.panelSplitter->count(); i++ )
+        sizes << each;
+      ui.panelSplitter->setSizes( sizes );
+    }
+  } );
+
   distributePanelSizes();
 }
 
