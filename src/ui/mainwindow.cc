@@ -260,9 +260,6 @@ MainWindow::MainWindow( Config::Class & cfg_ ):
 
   ui.setupUi( this );
   ui.panelSplitter->setOrientation( Qt::Horizontal ); // side-by-side (all columns)
-  ui.panelSplitter->setVisible( true ); // always visible, width=0 when empty
-  ui.centralLayout->setStretchFactor( ui.tabWidget, 1 );
-  ui.centralLayout->setStretchFactor( ui.panelSplitter, 0 );
 
   // Set own gesture recognizers
 #ifndef Q_OS_MAC
@@ -1398,6 +1395,7 @@ void MainWindow::addPanel( ArticleView * av )
   panel->setCurrentWidget( av );
   av->focus();
 
+  ui.panelSplitter->setVisible( true );
   distributePanelSizes();
 }
 
@@ -1435,7 +1433,6 @@ void MainWindow::removePanel( ArticleView * av )
 
 void MainWindow::distributePanelSizes()
 {
-  // Use QSplitter setSizes for proportional distribution (no layout cascade)
   int panelCount = 0;
   for ( int i = 0; i < ui.panelSplitter->count(); i++ ) {
     auto * p = qobject_cast< QTabWidget * >( ui.panelSplitter->widget( i ) );
@@ -1444,9 +1441,13 @@ void MainWindow::distributePanelSizes()
   }
 
   // Within panel splitter: equal shares
-  int count = ui.panelSplitter->count();
-  for ( int i = 0; i < count; i++ )
+  for ( int i = 0; i < ui.panelSplitter->count(); i++ )
     ui.panelSplitter->setStretchFactor( i, 1 );
+
+  // Enforce minimum width so window grows, never eats dock space
+  // Each child needs at least ~200px; total = (1 tab + N panels) * 200
+  int minW = ( 1 + panelCount ) * 200;
+  ui.centralWidget->setMinimumWidth( minW );
 }
 
 void MainWindow::togglePanel()
