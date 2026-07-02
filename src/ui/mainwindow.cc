@@ -1381,15 +1381,10 @@ void MainWindow::addPanel( ArticleView * av )
 
   panel->addTab( av, title );
   panel->setCurrentWidget( av );
+  ui.panelSplitter->setVisible( true );
 
-  // First panel: ensure side-by-side orientation
-  if ( ui.panelSplitter->count() == 1 ) {
-    ui.panelSplitter->setOrientation( Qt::Vertical );
-    ui.panelSplitter->setVisible( true );
-  }
-  else {
-    ui.panelSplitter->setVisible( true );
-  }
+  // Force side-by-side panels
+  ui.panelSplitter->setOrientation( Qt::Vertical );
 
   // Force equal sizes — QSplitter gives new widgets tiny defaults
   QList< int > sizes;
@@ -1460,7 +1455,7 @@ void MainWindow::distributePanelSizes()
 
   // Main tab widget and panels split window equally
   ui.centralLayout->setStretchFactor( ui.tabWidget, 1 );
-  ui.centralLayout->setStretchFactor( ui.panelSplitter, panelCount );
+  ui.centralLayout->setStretchFactor( ui.panelSplitter, 1 );
 
   // Within splitter: equal shares via stretch factors (let Qt layout engine compute sizes)
   for ( int i = 0; i < ui.panelSplitter->count(); i++ )
