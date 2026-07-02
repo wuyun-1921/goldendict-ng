@@ -1882,7 +1882,7 @@ from mouse-over, selection, clipboard or command line</string>
        <item>
         <widget class="QGroupBox" name="dictPanelGroup">
          <property name="title">
-          <string>Dict Article Scroll</string>
+          <string>Articles Extra</string>
          </property>
          <layout class="QFormLayout" name="formLayout_dictPanel">
           <item row="0" column="0">
