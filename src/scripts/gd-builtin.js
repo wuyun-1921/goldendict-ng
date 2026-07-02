@@ -218,10 +218,14 @@ if (
 
       // Middle 50%: scroll inside article. Outer 25% each side: scroll page.
       if (relX >= 0.25 && relX <= 0.75) {
-        // Middle zone: manually scroll article (prevents browser scroll inertia takeover)
-        e.preventDefault();
-        article.scrollTop += e.deltaY;
-        return;
+      // Middle zone: try article scroll first, fall back to page scroll at edges
+      const atTop    = article.scrollTop <= 0 && e.deltaY < 0;
+      const atBottom = article.scrollTop + article.clientHeight >= article.scrollHeight - 1 && e.deltaY > 0;
+      if ( atTop || atBottom )
+        return; // let browser scroll the page
+      e.preventDefault();
+      article.scrollTop += e.deltaY;
+      return;
       }
       // Peripheral zone: scroll the outer page
       e.preventDefault();
