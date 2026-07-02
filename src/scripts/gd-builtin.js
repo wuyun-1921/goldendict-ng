@@ -218,7 +218,9 @@ if (
 
       // Middle 50%: scroll inside article. Outer 25% each side: scroll page.
       if (relX >= 0.25 && relX <= 0.75) {
-        // Middle zone: default — article scrolls via overflow-y: auto
+        // Middle zone: manually scroll article (prevents browser scroll inertia takeover)
+        e.preventDefault();
+        article.scrollTop += e.deltaY;
         return;
       }
       // Peripheral zone: scroll the outer page
