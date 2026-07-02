@@ -1458,35 +1458,33 @@ void MainWindow::distributePanelSizes()
 
 void MainWindow::togglePanel()
 {
-  // Determine where keyboard focus is
-  QWidget * focus = QApplication::focusWidget();
-  bool focusInPanel = false;
-  QTabWidget * focusedPanel = nullptr;
+  if ( totalTabCount() <= 1 )
+    return;
 
-  // Walk up to find if focus is inside a panel QTabWidget
-  QWidget * w = focus;
-  while ( w && w != ui.panelSplitter && w != ui.tabWidget ) {
+  // Find if focus is inside a panel QTabWidget (not main tab)
+  QWidget * w      = QApplication::focusWidget();
+  QTabWidget * focusedPanel = nullptr;
+  while ( w && w != ui.panelSplitter ) {
     if ( auto * pt = qobject_cast< QTabWidget * >( w ) ) {
-      focusedPanel = pt;
-      focusInPanel = true;
+      if ( pt != ui.tabWidget )
+        focusedPanel = pt;
       break;
     }
     w = w->parentWidget();
   }
 
-  if ( focusInPanel && focusedPanel ) {
-    // Focus is in a panel → move its current tab back to main tab bar
+  if ( focusedPanel ) {
+    // Focus in a panel → move its current tab back to main
     auto * av = qobject_cast< ArticleView * >( focusedPanel->currentWidget() );
     if ( av )
       removePanel( av );
   }
-  else if ( ui.tabWidget->currentWidget() ) {
-    // Focus is in main tab → move current tab to panel
+  else {
+    // Focus in main tab or elsewhere → move main tab's current to panel
     auto * av = qobject_cast< ArticleView * >( ui.tabWidget->currentWidget() );
     if ( av )
       addPanel( av );
   }
-  // else: no action (focus elsewhere, or single tab, or no panel to return from)
 }
 
 void MainWindow::togglePanelOrientation()
