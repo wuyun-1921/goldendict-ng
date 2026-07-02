@@ -198,6 +198,21 @@ std::string ArticleMaker::makeHtmlHeader( const QString & word, const QString & 
     result += fmt::format( FMT_COMPILE( R"(<script src="bres://user/{}" defer></script>)" ), userJsFile.value() );
   }
 
+  // Dict panel height limit CSS variable
+  result += QString(
+    R"(<style>
+:root {
+  --gd-panel-height: %1%2;
+}
+.gdarticlebody {
+  max-height: var(--gd-panel-height);
+  overflow-y: auto;
+}
+</style>)"
+  ).arg( QString::number( cfg.dictPanelMaxHeight ),
+         cfg.dictPanelHeightUnit )
+    .toStdString();
+
   result += "</head><body>";
 
   return result;
