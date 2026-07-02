@@ -1301,6 +1301,67 @@ MainWindow::~MainWindow()
   delete ui.historyPaneWidget; // This should be deleted before shared History Object.
 }
 
+void MainWindow::addPanel( ArticleView * av )
+{
+  // Remove from tab widget
+  int idx = ui.tabWidget->indexOf( av );
+  if ( idx >= 0 ) {
+    ui.tabWidget->removeTab( idx );
+  }
+  // Add to splitter
+  ui.panelSplitter->addWidget( av );
+  ui.panelSplitter->setVisible( true );
+  av->show();
+}
+
+void MainWindow::removePanel( ArticleView * av )
+{
+  // Remove from splitter
+  av->setParent( nullptr );
+  // Add as background tab
+  int newIdx = ui.tabWidget->addTab( av, av->windowTitle() );
+  ui.tabWidget->setCurrentIndex( newIdx );
+  // Hide splitter if empty
+  if ( ui.panelSplitter->count() == 0 ) {
+    ui.panelSplitter->setVisible( false );
+  }
+}
+
+void MainWindow::togglePanel()
+{
+  ArticleView * current = qobject_cast< ArticleView * >( ui.tabWidget->currentWidget() );
+  if ( current ) {
+    // Tab -> Panel
+    addPanel( current );
+  }
+  else {
+    // Find focused panel
+    QWidget * w = ui.panelSplitter->focusWidget();
+    while ( w && !qobject_cast< ArticleView * >( w ) ) {
+      w = w->parentWidget();
+    }
+    current = qobject_cast< ArticleView * >( w );
+    if ( current ) {
+      removePanel( current );
+    }
+  }
+}
+
+void MainWindow::togglePanelOrientation()
+{
+  if ( ui.panelSplitter->orientation() == Qt::Horizontal ) {
+    ui.panelSplitter->setOrientation( Qt::Vertical );
+  }
+  else {
+    ui.panelSplitter->setOrientation( Qt::Horizontal );
+  }
+}
+
+int MainWindow::panelCount() const
+{
+  return ui.panelSplitter->count();
+}
+
 void MainWindow::addGlobalAction( QAction * action, const std::function< void() > & slotFunc )
 {
   action->setShortcutContext( Qt::WidgetWithChildrenShortcut );
