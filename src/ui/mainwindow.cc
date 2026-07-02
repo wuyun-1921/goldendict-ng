@@ -1456,9 +1456,6 @@ void MainWindow::distributePanelSizes()
   }
   ui.centralLayout->invalidate();
   ui.centralLayout->activate();
-  // Force immediate re-layout (stretch factors only kick in on resize)
-  ui.centralWidget->resize( ui.centralWidget->width() - 1, ui.centralWidget->height() );
-  ui.centralWidget->resize( ui.centralWidget->width() + 1, ui.centralWidget->height() );
 
   // Internal panel sizing
   if ( ui.panelSplitter->count() > 0 ) {
