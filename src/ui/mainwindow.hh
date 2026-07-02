@@ -55,9 +55,11 @@ public:
   // Side-by-side panels
   void addPanel( ArticleView * av );
   void removePanel( ArticleView * av );
+  void closePanelTab();
   void togglePanel();
   void togglePanelOrientation();
   int panelCount() const;
+  void distributePanelSizes();
 
   enum class WildcardPolicy {
     EscapeWildcards,
@@ -125,7 +127,7 @@ private:
   QAction escAction, focusTranslateLineAction, addTabAction, closeCurrentTabAction, closeAllTabAction,
     closeRestTabAction, switchToNextTabAction, switchToPrevTabAction, showDictBarNamesAction, toggleMenuBarAction,
     lockPanelsAction, focusHeadwordsDlgAction, focusArticleViewAction, addAllTabToFavoritesAction,
-    togglePanelAction, togglePanelOrientationAction;
+    togglePanelAction, togglePanelOrientationAction, closePanelAction;
 
   QAction useSmallIconsInToolbarsAction, useLargeIconsInToolbarsAction, useNormalIconsInToolbarsAction;
 

@@ -177,6 +177,7 @@ MainWindow::MainWindow( Config::Class & cfg_ ):
   stopAudioAction( this ),
   togglePanelAction( this ),
   togglePanelOrientationAction( this ),
+  closePanelAction( this ),
   trayIconMenu( this ),
   addTab( this ),
   cfg( cfg_ ),
@@ -515,6 +516,20 @@ MainWindow::MainWindow( Config::Class & cfg_ ):
   connect( &togglePanelOrientationAction, &QAction::triggered, this, &MainWindow::togglePanelOrientation );
   addAction( &togglePanelOrientationAction );
 
+  // Close panel (move focused panel back to tab bar)
+  closePanelAction.setText( tr("Close Panel") );
+  closePanelAction.setShortcut( QKeySequence("Ctrl+Shift+W") );
+  closePanelAction.setShortcutContext( Qt::WidgetWithChildrenShortcut );
+  connect( &closePanelAction, &QAction::triggered, this, [this]() {
+    QWidget * w = ui.panelSplitter->focusWidget();
+    while ( w && !qobject_cast< ArticleView * >( w ) ) {
+      w = w->parentWidget();
+    }
+    if ( auto * av = qobject_cast< ArticleView * >( w ) )
+      removePanel( av );
+  } );
+  addAction( &closePanelAction );
+
   closeCurrentTabAction.setShortcutContext( Qt::WidgetWithChildrenShortcut );
   closeCurrentTabAction.setShortcut( QKeySequence( "Ctrl+W" ) );
   closeCurrentTabAction.setText( tr( "Close current tab" ) );
@@ -621,6 +636,7 @@ MainWindow::MainWindow( Config::Class & cfg_ ):
   ui.menuView->addSeparator();
   ui.menuView->addAction( &togglePanelAction );
   ui.menuView->addAction( &togglePanelOrientationAction );
+  ui.menuView->addAction( &closePanelAction );
 
   // Dictionary bar
 
@@ -1324,39 +1340,110 @@ MainWindow::~MainWindow()
 
 void MainWindow::addPanel( ArticleView * av )
 {
-  // Remove from tab widget
+  // Remove from main tab widget
   int idx = ui.tabWidget->indexOf( av );
   if ( idx >= 0 ) {
     ui.tabWidget->removeTab( idx );
   }
-  // Add to splitter
-  ui.panelSplitter->addWidget( av );
+
+  // Create or reuse a panel QTabWidget wrapper
+  QTabWidget * panel = nullptr;
+  for ( int i = 0; i < ui.panelSplitter->count(); i++ ) {
+    auto * pw = qobject_cast< QTabWidget * >( ui.panelSplitter->widget( i ) );
+    if ( pw ) {
+      panel = pw;
+      break;
+    }
+  }
+
+  if ( !panel ) {
+    panel = new QTabWidget();
+    panel->setTabsClosable( true );
+    panel->setMovable( true );
+    panel->setUsesScrollButtons( true );
+    connect( panel, &QTabWidget::tabCloseRequested, this, [ this, panel ]( int tabIndex ) {
+      auto * w = panel->widget( tabIndex );
+      auto * avClose = qobject_cast< ArticleView * >( w );
+      if ( !avClose )
+        return;
+      panel->removeTab( tabIndex );
+      // Return tab to main tab bar
+      int newIdx = ui.tabWidget->addTab( avClose, avClose->windowTitle() );
+      ui.tabWidget->setCurrentIndex( newIdx );
+      // Last tab closed → remove panel
+      if ( panel->count() == 0 ) {
+        panel->deleteLater();
+        if ( ui.panelSplitter->count() == 0 )
+          ui.panelSplitter->setVisible( false );
+        distributePanelSizes();
+      }
+    } );
+    ui.panelSplitter->addWidget( panel );
+  }
+
+  panel->addTab( av, av->windowTitle() );
+  panel->setCurrentWidget( av );
   ui.panelSplitter->setVisible( true );
-  av->show();
+  distributePanelSizes();
 }
 
 void MainWindow::removePanel( ArticleView * av )
 {
-  // Remove from splitter
-  av->setParent( nullptr );
-  // Add as background tab
+  // Find and remove from panel tab widget
+  for ( int i = 0; i < ui.panelSplitter->count(); i++ ) {
+    auto * panel = qobject_cast< QTabWidget * >( ui.panelSplitter->widget( i ) );
+    if ( !panel )
+      continue;
+    int tabIdx = panel->indexOf( av );
+    if ( tabIdx >= 0 ) {
+      panel->removeTab( tabIdx );
+      break;
+    }
+  }
+
+  // Add back to main tab widget
   int newIdx = ui.tabWidget->addTab( av, av->windowTitle() );
   ui.tabWidget->setCurrentIndex( newIdx );
-  // Hide splitter if empty
-  if ( ui.panelSplitter->count() == 0 ) {
-    ui.panelSplitter->setVisible( false );
+
+  // Hide splitter if no panels with content remain
+  bool hasContent = false;
+  for ( int i = 0; i < ui.panelSplitter->count(); i++ ) {
+    auto * panel = qobject_cast< QTabWidget * >( ui.panelSplitter->widget( i ) );
+    if ( panel && panel->count() > 0 ) {
+      hasContent = true;
+      break;
+    }
   }
+  if ( !hasContent )
+    ui.panelSplitter->setVisible( false );
+  distributePanelSizes();
+}
+
+void MainWindow::distributePanelSizes()
+{
+  int count = ui.panelSplitter->count();
+  if ( count == 0 )
+    return;
+  int total = ( ui.panelSplitter->orientation() == Qt::Horizontal ) ? ui.panelSplitter->width()
+                                                                     : ui.panelSplitter->height();
+  QList< int > sizes;
+  for ( int i = 0; i < count; i++ ) {
+    sizes << ( total > 0 ? total / count : 100 );
+    ui.panelSplitter->setStretchFactor( i, 1 );
+  }
+  if ( total > 0 )
+    ui.panelSplitter->setSizes( sizes );
 }
 
 void MainWindow::togglePanel()
 {
   ArticleView * current = qobject_cast< ArticleView * >( ui.tabWidget->currentWidget() );
   if ( current ) {
-    // Tab -> Panel
+    // Tab → Panel
     addPanel( current );
   }
   else {
-    // Find focused panel
+    // Find focused ArticleView in a panel
     QWidget * w = ui.panelSplitter->focusWidget();
     while ( w && !qobject_cast< ArticleView * >( w ) ) {
       w = w->parentWidget();
@@ -1380,7 +1467,13 @@ void MainWindow::togglePanelOrientation()
 
 int MainWindow::panelCount() const
 {
-  return ui.panelSplitter->count();
+  int count = 0;
+  for ( int i = 0; i < ui.panelSplitter->count(); i++ ) {
+    auto * panel = qobject_cast< QTabWidget * >( ui.panelSplitter->widget( i ) );
+    if ( panel && panel->count() > 0 )
+      count++;
+  }
+  return count;
 }
 
 void MainWindow::addGlobalAction( QAction * action, const std::function< void() > & slotFunc )
