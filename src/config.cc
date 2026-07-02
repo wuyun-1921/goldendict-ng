@@ -158,7 +158,8 @@ Preferences::Preferences():
   dictPanelEnabled( true ),
   dictPanelMaxHeight( 300 ),
   dictPanelHeightUnit( "px" ),
-  dictPanelScrollZone( 50 )
+  dictPanelScrollZone( 50 ),
+  sideBySideDefaultSplit( 50 )
 {
 }
 
@@ -1036,6 +1037,9 @@ Class load()
       c.preferences.dictPanelHeightUnit = preferences.namedItem( "dictPanelHeightUnit" ).toElement().text();
     if ( !preferences.namedItem( "dictPanelScrollZone" ).isNull() )
       c.preferences.dictPanelScrollZone = preferences.namedItem( "dictPanelScrollZone" ).toElement().text().toInt();
+
+    if ( !preferences.namedItem( "sideBySideDefaultSplit" ).isNull() )
+      c.preferences.sideBySideDefaultSplit = preferences.namedItem( "sideBySideDefaultSplit" ).toElement().text().toInt();
 
     QDomNode fts = preferences.namedItem( "fullTextSearch" );
 
@@ -2054,6 +2058,9 @@ void save( const Class & c )
     preferences.appendChild( opt );
     opt = dd.createElement( "dictPanelScrollZone" );
     opt.appendChild( dd.createTextNode( QString::number( c.preferences.dictPanelScrollZone ) ) );
+    preferences.appendChild( opt );
+    opt = dd.createElement( "sideBySideDefaultSplit" );
+    opt.appendChild( dd.createTextNode( QString::number( c.preferences.sideBySideDefaultSplit ) ) );
     preferences.appendChild( opt );
 
     {

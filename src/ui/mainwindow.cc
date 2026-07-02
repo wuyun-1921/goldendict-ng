@@ -521,12 +521,21 @@ MainWindow::MainWindow( Config::Class & cfg_ ):
   closePanelAction.setShortcut( QKeySequence("Ctrl+Shift+W") );
   closePanelAction.setShortcutContext( Qt::WidgetWithChildrenShortcut );
   connect( &closePanelAction, &QAction::triggered, this, [this]() {
-    QWidget * w = ui.panelSplitter->focusWidget();
+    // Find focused ArticleView in a panel
+    QWidget * w = QApplication::focusWidget();
     while ( w && !qobject_cast< ArticleView * >( w ) ) {
       w = w->parentWidget();
     }
-    if ( auto * av = qobject_cast< ArticleView * >( w ) )
-      removePanel( av );
+    if ( auto * av = qobject_cast< ArticleView * >( w ) ) {
+      // Check if it's in a panel (not main tab widget)
+      for ( int i = 0; i < ui.panelSplitter->count(); i++ ) {
+        auto * panel = qobject_cast< QTabWidget * >( ui.panelSplitter->widget( i ) );
+        if ( panel && panel->indexOf( av ) >= 0 ) {
+          removePanel( av );
+          break;
+        }
+      }
+    }
   } );
   addAction( &closePanelAction );
 
@@ -1390,6 +1399,7 @@ void MainWindow::addPanel( ArticleView * av )
 void MainWindow::removePanel( ArticleView * av )
 {
   // Find and remove from panel tab widget
+  QTabWidget * targetPanel = nullptr;
   for ( int i = 0; i < ui.panelSplitter->count(); i++ ) {
     auto * panel = qobject_cast< QTabWidget * >( ui.panelSplitter->widget( i ) );
     if ( !panel )
@@ -1397,6 +1407,7 @@ void MainWindow::removePanel( ArticleView * av )
     int tabIdx = panel->indexOf( av );
     if ( tabIdx >= 0 ) {
       panel->removeTab( tabIdx );
+      targetPanel = panel;
       break;
     }
   }
@@ -1404,6 +1415,11 @@ void MainWindow::removePanel( ArticleView * av )
   // Add back to main tab widget
   int newIdx = ui.tabWidget->addTab( av, av->windowTitle() );
   ui.tabWidget->setCurrentIndex( newIdx );
+
+  // Clean up empty panel
+  if ( targetPanel && targetPanel->count() == 0 ) {
+    targetPanel->deleteLater();
+  }
 
   // Hide splitter if no panels with content remain
   bool hasContent = false;
@@ -1424,15 +1440,29 @@ void MainWindow::distributePanelSizes()
   int count = ui.panelSplitter->count();
   if ( count == 0 )
     return;
-  int total = ( ui.panelSplitter->orientation() == Qt::Horizontal ) ? ui.panelSplitter->width()
-                                                                     : ui.panelSplitter->height();
+
+  // Use main window size if splitter hasn't been laid out yet
+  int total = ( ui.panelSplitter->orientation() == Qt::Horizontal ) ? height() : width();
+  if ( total <= 0 )
+    total = 800;
+
+  int defaultPct = cfg.preferences.sideBySideDefaultSplit;
   QList< int > sizes;
-  for ( int i = 0; i < count; i++ ) {
-    sizes << ( total > 0 ? total / count : 100 );
-    ui.panelSplitter->setStretchFactor( i, 1 );
+
+  if ( count == 1 ) {
+    // Single panel: take defaultPct% of canvas
+    int panelSize = total * defaultPct / 100;
+    sizes << panelSize;
   }
-  if ( total > 0 )
-    ui.panelSplitter->setSizes( sizes );
+  else {
+    // Multiple panels: equal split
+    for ( int i = 0; i < count; i++ )
+      sizes << ( total / count );
+  }
+
+  for ( int i = 0; i < count; i++ )
+    ui.panelSplitter->setStretchFactor( i, 1 );
+  ui.panelSplitter->setSizes( sizes );
 }
 
 void MainWindow::togglePanel()
@@ -4051,9 +4081,19 @@ void MainWindow::messageFromAnotherInstanceReceived( const QString & message )
 
 ArticleView * MainWindow::getCurrentArticleView()
 {
+  // Check main tab widget first
   QWidget * currentWidget   = ui.tabWidget->currentWidget();
   ArticleView * currentView = qobject_cast< ArticleView * >( currentWidget );
+  if ( currentView ) {
+    return currentView;
+  }
 
+  // Check panel tab widgets
+  QWidget * focus = ui.panelSplitter->focusWidget();
+  while ( focus && !qobject_cast< ArticleView * >( focus ) ) {
+    focus = focus->parentWidget();
+  }
+  currentView = qobject_cast< ArticleView * >( focus );
   if ( currentView ) {
     return currentView;
   }
@@ -4101,20 +4141,33 @@ ArticleView * MainWindow::findArticleViewByDictId( const QString & dictId )
 {
   // First check if openWebsiteInNewTab configuration is enabled
   if ( GlobalBroadcaster::instance()->getPreference()->openWebsiteInNewTab ) {
-    // Iterate through all tabs
+    // Iterate through all tabs in main tab widget
     for ( int i = 0; i < ui.tabWidget->count(); i++ ) {
       auto * view = qobject_cast< ArticleView * >( ui.tabWidget->widget( i ) );
       if ( view && view->isWebsite() ) {
-        // Check if current ArticleView's activeDictIds list contains the specified dictId
         QString dictIdActive = view->getActiveArticleId();
         if ( dictIdActive == dictId ) {
           return view;
         }
       }
     }
+    // Also search panel tab widgets
+    for ( int p = 0; p < ui.panelSplitter->count(); p++ ) {
+      auto * panel = qobject_cast< QTabWidget * >( ui.panelSplitter->widget( p ) );
+      if ( !panel )
+        continue;
+      for ( int i = 0; i < panel->count(); i++ ) {
+        auto * view = qobject_cast< ArticleView * >( panel->widget( i ) );
+        if ( view && view->isWebsite() ) {
+          QString dictIdActive = view->getActiveArticleId();
+          if ( dictIdActive == dictId ) {
+            return view;
+          }
+        }
+      }
+    }
   }
   qDebug() << "findArticleViewByDictId() return nullptr with dictId:" << dictId;
-  // If configuration is not enabled or no matching ArticleView found, return nullptr
   return nullptr;
 }
 

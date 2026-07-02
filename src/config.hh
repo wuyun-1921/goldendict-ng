@@ -389,6 +389,7 @@ struct Preferences
   int dictPanelMaxHeight;
   QString dictPanelHeightUnit;
   int dictPanelScrollZone;
+  int sideBySideDefaultSplit;
 
   Preferences();
 };
