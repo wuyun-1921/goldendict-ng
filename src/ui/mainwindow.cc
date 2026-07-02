@@ -716,8 +716,6 @@ MainWindow::MainWindow( Config::Class & cfg_ ):
   ui.tabWidget->setDocumentMode( true );
 #endif
 
-  ui.tabWidget->setContextMenuPolicy( Qt::CustomContextMenu );
-
   connect( &addTab, &QAbstractButton::clicked, this, &MainWindow::addNewTab );
 
   connect( ui.tabWidget, &MainTabWidget::tabBarDoubleClicked, this, [ this ]( const int index ) {
@@ -730,7 +728,11 @@ MainWindow::MainWindow( Config::Class & cfg_ ):
 
   connect( ui.tabWidget, &QTabWidget::currentChanged, this, &MainWindow::tabSwitched );
 
-  connect( ui.tabWidget, &QWidget::customContextMenuRequested, this, &MainWindow::tabMenuRequested );
+  connect( ui.tabWidget, &MainTabWidget::moveTabToPanelRequested, this, [ this ]( int idx ) {
+    ArticleView * av = qobject_cast< ArticleView * >( ui.tabWidget->widget( idx ) );
+    if ( av )
+      addPanel( av );
+  } );
 
   ui.tabWidget->setTabsClosable( true );
 
