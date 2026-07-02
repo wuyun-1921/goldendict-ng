@@ -1882,7 +1882,7 @@ from mouse-over, selection, clipboard or command line</string>
        <item>
         <widget class="QGroupBox" name="dictPanelGroup">
          <property name="title">
-          <string>Dictionary Panels</string>
+          <string>Dict Article Scroll</string>
          </property>
          <layout class="QFormLayout" name="formLayout_dictPanel">
           <item row="0" column="0">
@@ -1916,16 +1916,6 @@ from mouse-over, selection, clipboard or command line</string>
               <item>
                <property name="text">
                 <string>px</string>
-               </property>
-              </item>
-              <item>
-               <property name="text">
-                <string>em</string>
-               </property>
-              </item>
-              <item>
-               <property name="text">
-                <string>vh</string>
                </property>
               </item>
              </widget>
