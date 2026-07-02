@@ -1396,10 +1396,8 @@ void MainWindow::addPanel( ArticleView * av )
 
   panel->addTab( av, title );
   panel->setCurrentWidget( av );
+  av->setFocus(); // ensure webview has focus for keyboard shortcuts
   ui.panelSplitter->setVisible( true );
-
-  // Default: stacked panels (Qt::Horizontal = top/bottom arrangement)
-  ui.panelSplitter->setOrientation( Qt::Horizontal );
 
   distributePanelSizes();
 }
