@@ -1457,9 +1457,11 @@ void MainWindow::distributePanelSizes()
   if ( panelCount == 0 ) {
     // No panels: tab gets all space
     if ( outer ) {
+      int outerW = outer->orientation() == Qt::Horizontal ? outer->width() : outer->height();
+      if ( outerW <= 0 ) outerW = 800;
+      outer->setSizes( { outerW, 0 } );
       outer->setStretchFactor( 0, 1 );
       outer->setStretchFactor( 1, 0 );
-      outer->setSizes( { 1, 0 } );
     }
     ui.centralWidget->setMinimumWidth( 0 );
     return;
@@ -1467,12 +1469,16 @@ void MainWindow::distributePanelSizes()
 
   // Dynamic stretch: side-by-side = 1:N, stacked = 1:1
   if ( outer ) {
+    int outerW = outer->orientation() == Qt::Horizontal ? outer->width() : outer->height();
+    if ( outerW <= 0 ) outerW = 800;
     if ( ui.panelSplitter->orientation() == Qt::Horizontal ) {
-      outer->setSizes( { 1, panelCount } );
+      // Each child gets equal share: 1+panelCount columns
+      int each = outerW / ( 1 + panelCount );
+      outer->setSizes( { each, each * panelCount } );
       outer->setStretchFactor( 0, 1 );
       outer->setStretchFactor( 1, panelCount );
     } else {
-      outer->setSizes( { 1, 1 } );
+      outer->setSizes( { outerW / 2, outerW / 2 } );
       outer->setStretchFactor( 0, 1 );
       outer->setStretchFactor( 1, 1 );
     }
