@@ -1435,6 +1435,7 @@ void MainWindow::removePanel( ArticleView * av )
 
 void MainWindow::distributePanelSizes()
 {
+  // Use QSplitter setSizes for proportional distribution (no layout cascade)
   int panelCount = 0;
   for ( int i = 0; i < ui.panelSplitter->count(); i++ ) {
     auto * p = qobject_cast< QTabWidget * >( ui.panelSplitter->widget( i ) );
@@ -1442,20 +1443,9 @@ void MainWindow::distributePanelSizes()
       panelCount++;
   }
 
-  // Side-by-side: each column = 1/(1+panelCount). Stacked: 2 columns 50/50.
-  // Zero panels: tab gets all space.
-  if ( panelCount == 0 ) {
-    ui.centralLayout->setStretchFactor( ui.tabWidget, 1 );
-    ui.centralLayout->setStretchFactor( ui.panelSplitter, 0 );
-  } else if ( ui.panelSplitter->orientation() == Qt::Horizontal ) {
-    ui.centralLayout->setStretchFactor( ui.tabWidget, 1 );
-    ui.centralLayout->setStretchFactor( ui.panelSplitter, panelCount );
-  } else {
-    ui.centralLayout->setStretchFactor( ui.tabWidget, 1 );
-    ui.centralLayout->setStretchFactor( ui.panelSplitter, 1 );
-  }
-
-  for ( int i = 0; i < ui.panelSplitter->count(); i++ )
+  // Within panel splitter: equal shares
+  int count = ui.panelSplitter->count();
+  for ( int i = 0; i < count; i++ )
     ui.panelSplitter->setStretchFactor( i, 1 );
 }
 
