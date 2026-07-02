@@ -175,6 +175,8 @@ MainWindow::MainWindow( Config::Class & cfg_ ):
   useLargeIconsInToolbarsAction( tr( "Show &Large Icons in Toolbars" ), this ),
   useNormalIconsInToolbarsAction( tr( "Show &Normal Icons in Toolbars" ), this ),
   stopAudioAction( this ),
+  togglePanelAction( this ),
+  togglePanelOrientationAction( this ),
   trayIconMenu( this ),
   addTab( this ),
   cfg( cfg_ ),
@@ -499,6 +501,20 @@ MainWindow::MainWindow( Config::Class & cfg_ ):
 
   addAction( &addTabAction );
 
+  // Panel toggle
+  togglePanelAction.setText( tr("Toggle Panel") );
+  togglePanelAction.setShortcut( QKeySequence("Ctrl+Shift+P") );
+  togglePanelAction.setShortcutContext( Qt::WidgetWithChildrenShortcut );
+  connect( &togglePanelAction, &QAction::triggered, this, &MainWindow::togglePanel );
+  addAction( &togglePanelAction );
+
+  // Panel orientation toggle
+  togglePanelOrientationAction.setText( tr("Toggle Panel Orientation") );
+  togglePanelOrientationAction.setShortcut( QKeySequence("Ctrl+Shift+H") );
+  togglePanelOrientationAction.setShortcutContext( Qt::WidgetWithChildrenShortcut );
+  connect( &togglePanelOrientationAction, &QAction::triggered, this, &MainWindow::togglePanelOrientation );
+  addAction( &togglePanelOrientationAction );
+
   closeCurrentTabAction.setShortcutContext( Qt::WidgetWithChildrenShortcut );
   closeCurrentTabAction.setShortcut( QKeySequence( "Ctrl+W" ) );
   closeCurrentTabAction.setText( tr( "Close current tab" ) );
@@ -602,6 +618,9 @@ MainWindow::MainWindow( Config::Class & cfg_ ):
   connect( &lockPanelsAction, &QAction::toggled, this, &MainWindow::onLockPanelsToggled );
   ui.menuView->addAction( &lockPanelsAction );
   ui.menuView->addAction( ui.alwaysOnTop );
+  ui.menuView->addSeparator();
+  ui.menuView->addAction( &togglePanelAction );
+  ui.menuView->addAction( &togglePanelOrientationAction );
 
   // Dictionary bar
 
