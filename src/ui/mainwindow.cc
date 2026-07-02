@@ -260,21 +260,6 @@ MainWindow::MainWindow( Config::Class & cfg_ ):
 
   ui.setupUi( this );
 
-  // Replace QHBoxLayout with QSplitter for tab area and panel area
-  // (QHBoxLayout stretch factors don't control initial sizes)
-  auto * outerSplitter = new QSplitter( Qt::Vertical, this );
-  outerSplitter->setObjectName( "outerSplitter" );
-  // Remove widgets from centralLayout
-  ui.centralLayout->removeWidget( ui.tabWidget );
-  ui.centralLayout->removeWidget( ui.panelSplitter );
-  // Add to outer splitter
-  outerSplitter->addWidget( ui.tabWidget );
-  outerSplitter->addWidget( ui.panelSplitter );
-  outerSplitter->setStretchFactor( 0, 1 );
-  outerSplitter->setStretchFactor( 1, 1 );
-  // Add splitter back to layout
-  ui.centralLayout->addWidget( outerSplitter );
-
   // Set own gesture recognizers
 #ifndef Q_OS_MAC
   Gestures::registerRecognizers();
@@ -1467,20 +1452,16 @@ void MainWindow::removePanel( ArticleView * av )
 
 void MainWindow::distributePanelSizes()
 {
-  auto * outerSplitter = findChild< QSplitter * >( "outerSplitter" );
-  if ( outerSplitter && outerSplitter->count() > 0 ) {
-    // setSizes takes pixel values, not ratios
-    int total = ( outerSplitter->orientation() == Qt::Vertical )
-                  ? outerSplitter->width() : outerSplitter->height();
-    if ( total > 0 ) {
-      QList< int > sizes;
-      for ( int i = 0; i < outerSplitter->count(); i++ )
-        sizes << total / outerSplitter->count();
-      outerSplitter->setSizes( sizes );
-    }
-  }
+  // Always 50/50 between tab area and panel area
+  ui.centralLayout->setStretchFactor( ui.tabWidget, 1 );
+  ui.centralLayout->setStretchFactor( ui.panelSplitter, 1 );
+  ui.centralLayout->invalidate();
+  ui.centralLayout->activate();
 
+  // Panel splitter: stretch + explicit sizes
   if ( ui.panelSplitter->count() > 0 ) {
+    for ( int i = 0; i < ui.panelSplitter->count(); i++ )
+      ui.panelSplitter->setStretchFactor( i, 1 );
     int total = ( ui.panelSplitter->orientation() == Qt::Vertical )
                   ? ui.panelSplitter->width() : ui.panelSplitter->height();
     if ( total > 0 ) {
@@ -1527,18 +1508,10 @@ void MainWindow::togglePanel()
 
 void MainWindow::togglePanelOrientation()
 {
-  auto * outerSplitter = findChild< QSplitter * >( "outerSplitter" );
-
-  // Toggle both splitters: 1 row many cols <-> 1 col many rows
-  if ( ui.panelSplitter->orientation() == Qt::Vertical ) {
+  if ( ui.panelSplitter->orientation() == Qt::Vertical )
     ui.panelSplitter->setOrientation( Qt::Horizontal );
-    if ( outerSplitter )
-      outerSplitter->setOrientation( Qt::Horizontal );
-  } else {
+  else
     ui.panelSplitter->setOrientation( Qt::Vertical );
-    if ( outerSplitter )
-      outerSplitter->setOrientation( Qt::Vertical );
-  }
   distributePanelSizes();
 }
 
