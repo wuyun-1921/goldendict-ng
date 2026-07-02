@@ -48,9 +48,6 @@
       <property name="orientation">
        <enum>Qt::Horizontal</enum>
       </property>
-      <property name="visible">
-       <bool>false</bool>
-      </property>
      </widget>
     </item>
    </layout>

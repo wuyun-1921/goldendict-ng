@@ -259,18 +259,14 @@ MainWindow::MainWindow( Config::Class & cfg_ ):
 #endif
 
   ui.setupUi( this );
-  ui.panelSplitter->setOrientation( Qt::Horizontal ); // side-by-side (all columns)
 
-  // Replace QHBoxLayout with QSplitter — reliable sizing control
+  // Single splitter: move tabWidget into panelSplitter so everything is equal peer
   ui.centralLayout->removeWidget( ui.tabWidget );
   ui.centralLayout->removeWidget( ui.panelSplitter );
-  auto * outer = new QSplitter( Qt::Horizontal, this );
-  outer->setObjectName( "outerSplitter" );
-  outer->addWidget( ui.tabWidget );
-  outer->addWidget( ui.panelSplitter );
-  outer->setStretchFactor( 0, 1 );
-  outer->setStretchFactor( 1, 0 ); // 0 while hidden
-  ui.centralLayout->addWidget( outer );
+  ui.panelSplitter->insertWidget( 0, ui.tabWidget );
+  ui.panelSplitter->setOrientation( Qt::Horizontal ); // side-by-side default
+  ui.panelSplitter->setVisible( true ); // always visible
+  ui.centralLayout->addWidget( ui.panelSplitter );
 
   // Set own gesture recognizers
 #ifndef Q_OS_MAC
@@ -1406,12 +1402,7 @@ void MainWindow::addPanel( ArticleView * av )
   panel->setCurrentWidget( av );
   av->focus();
 
-  ui.panelSplitter->setVisible( true );
-
-  // Defer final sizing until after layout processes visibility change
-  QTimer::singleShot( 0, this, [ this ]() {
-    distributePanelSizes();
-  } );
+  distributePanelSizes();
 }
 
 void MainWindow::removePanel( ArticleView * av )
@@ -1419,7 +1410,7 @@ void MainWindow::removePanel( ArticleView * av )
   // Save title before removing from panel
   QString title = av->windowTitle();
   QTabWidget * targetPanel = nullptr;
-  for ( int i = 0; i < ui.panelSplitter->count(); i++ ) {
+  for ( int i = 1; i < ui.panelSplitter->count(); i++ ) {
     auto * panel = qobject_cast< QTabWidget * >( ui.panelSplitter->widget( i ) );
     if ( !panel )
       continue;
@@ -1448,61 +1439,26 @@ void MainWindow::removePanel( ArticleView * av )
 
 void MainWindow::distributePanelSizes()
 {
-  int panelCount = 0;
-  for ( int i = 0; i < ui.panelSplitter->count(); i++ ) {
-    auto * p = qobject_cast< QTabWidget * >( ui.panelSplitter->widget( i ) );
-    if ( p && p->count() > 0 )
-      panelCount++;
-  }
-
-  auto * outer = findChild< QSplitter * >( "outerSplitter" );
-
-  if ( panelCount == 0 ) {
-    // No panels: tab gets all space
-    if ( outer ) {
-      int outerW = outer->orientation() == Qt::Horizontal ? outer->width() : outer->height();
-      if ( outerW <= 0 ) outerW = 800;
-      outer->setSizes( { outerW, 0 } );
-      outer->setStretchFactor( 0, 1 );
-      outer->setStretchFactor( 1, 0 );
-    }
-    ui.centralWidget->setMinimumWidth( 0 );
-    return;
-  }
-
-  // Dynamic stretch: side-by-side = 1:N, stacked = 1:1
-  if ( outer ) {
-    int outerW = outer->orientation() == Qt::Horizontal ? outer->width() : outer->height();
-    if ( outerW <= 0 ) outerW = 800;
-    if ( ui.panelSplitter->orientation() == Qt::Horizontal ) {
-      // Each child gets equal share: 1+panelCount columns
-      int each = outerW / ( 1 + panelCount );
-      outer->setSizes( { each, each * panelCount } );
-      outer->setStretchFactor( 0, 1 );
-      outer->setStretchFactor( 1, panelCount );
-    } else {
-      outer->setSizes( { outerW / 2, outerW / 2 } );
-      outer->setStretchFactor( 0, 1 );
-      outer->setStretchFactor( 1, 1 );
-    }
-  }
-
-  // Within panel splitter: equal shares
   int count = ui.panelSplitter->count();
+  if ( count == 0 )
+    return;
+
+  // All children equal stretch
   for ( int i = 0; i < count; i++ )
     ui.panelSplitter->setStretchFactor( i, 1 );
-  if ( count > 0 ) {
-    int total = ( ui.panelSplitter->orientation() == Qt::Horizontal )
-                  ? ui.panelSplitter->width() : ui.panelSplitter->height();
-    if ( total > 0 ) {
-      QList< int > sizes;
-      for ( int i = 0; i < count; i++ )
-        sizes << total / count;
-      ui.panelSplitter->setSizes( sizes );
-    }
+
+  // Explicit initial sizes (stretch only affects resize)
+  int total = ( ui.panelSplitter->orientation() == Qt::Horizontal )
+                ? ui.panelSplitter->width() : ui.panelSplitter->height();
+  if ( total > 0 ) {
+    QList< int > sizes;
+    for ( int i = 0; i < count; i++ )
+      sizes << total / count;
+    ui.panelSplitter->setSizes( sizes );
   }
 
-  ui.centralWidget->setMinimumWidth( ( 1 + panelCount ) * 200 );
+  // Minimum width so window grows, never eats dock space
+  ui.centralWidget->setMinimumWidth( count * 200 );
 }
 
 void MainWindow::togglePanel()
@@ -1513,7 +1469,7 @@ void MainWindow::togglePanel()
   // Toggle: if any panel has tabs, move one back to main.
   //          Otherwise move main's current to a new panel.
   QWidget * panelWidget = nullptr;
-  for ( int i = 0; i < ui.panelSplitter->count(); i++ ) {
+  for ( int i = 1; i < ui.panelSplitter->count(); i++ ) {
     auto * pt = qobject_cast< QTabWidget * >( ui.panelSplitter->widget( i ) );
     if ( pt && pt->count() > 0 ) {
       panelWidget = pt->currentWidget();
@@ -1545,7 +1501,7 @@ void MainWindow::togglePanelOrientation()
 int MainWindow::totalTabCount() const
 {
   int count = ui.tabWidget->count();
-  for ( int i = 0; i < ui.panelSplitter->count(); i++ ) { // skip tabWidget at 0
+  for ( int i = 1; i < ui.panelSplitter->count(); i++ ) {
     auto * panel = qobject_cast< QTabWidget * >( ui.panelSplitter->widget( i ) );
     if ( panel )
       count += panel->count();
@@ -1556,7 +1512,7 @@ int MainWindow::totalTabCount() const
 int MainWindow::panelCount() const
 {
   int count = 0;
-  for ( int i = 0; i < ui.panelSplitter->count(); i++ ) {
+  for ( int i = 1; i < ui.panelSplitter->count(); i++ ) {
     auto * panel = qobject_cast< QTabWidget * >( ui.panelSplitter->widget( i ) );
     if ( panel && panel->count() > 0 )
       count++;
