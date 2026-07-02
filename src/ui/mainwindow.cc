@@ -4806,6 +4806,11 @@ void MainWindow::openWebsiteInNewTab( QString name, QString url, QString dictId,
     view->setWebsite( true );
     // Set the dictId for the website view
     view->setActiveArticleId( dictId );
+
+    // Move to panel if configured
+    if ( cfg.preferences.openWebsitesInPanel ) {
+      addPanel( view );
+    }
   }
 
   // Set the current word for the website view
