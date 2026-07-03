@@ -1,0 +1,325 @@
+name: wy-patches Release
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 0 1 * *'
+
+jobs:
+  rebase:
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    outputs:
+      rebaseSha: ${{ steps.rebase.outputs.sha }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: wy-patches
+          fetch-depth: 0
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+      - name: Fetch upstream and rebase
+        id: rebase
+        run: |
+          git remote add upstream https://github.com/xiaoyifang/goldendict-ng.git || true
+          git fetch upstream master
+          UPSTREAM_SHA=$(git rev-parse upstream/master)
+          echo "Upstream: $UPSTREAM_SHA"
+
+          git rebase upstream/master wy-patches
+          REBASE_SHA=$(git rev-parse HEAD)
+          echo "sha=$REBASE_SHA" >> $GITHUB_OUTPUT
+
+          git push origin wy-patches --force-with-lease
+
+  build_Linux:
+    needs: rebase
+    permissions:
+      contents: read
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --fix-missing build-essential ninja-build ccache \
+            libvorbis-dev zlib1g-dev libhunspell-dev x11proto-record-dev \
+            libxtst-dev liblzo2-dev libbz2-dev \
+            libavutil-dev libavformat-dev libeb16-dev \
+            libzstd-dev libxkbcommon-dev \
+            libxapian-dev libzim-dev libopencc-dev libfmt-dev \
+            libtomlplusplus-dev \
+            qt6-5compat-dev \
+            qt6-base-dev \
+            qt6-multimedia-dev \
+            qt6-speech-dev \
+            qt6-svg-dev \
+            qt6-tools-dev \
+            qt6-tools-dev-tools \
+            qt6-webchannel-dev \
+            qt6-webengine-dev
+      - uses: actions/checkout@v6
+        with:
+          ref: wy-patches
+          submodules: false
+      - name: ccache
+        uses: hendrikmuhs/ccache-action@v1.2
+        with:
+          key: ${{ runner.os }}-wy-ubuntu
+      - name: Build
+        run: |
+          mkdir build_dir
+          cmake -S . \
+            -B ./build_dir \
+            -G Ninja \
+            -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_PREFIX=/opt/goldendict-ng
+          cmake --build build_dir
+      - name: Install and package
+        run: |
+          cmake --install build_dir --prefix ./install
+          cd install
+          tar czf ../goldendict-ng-wy-linux-x86_64.tar.gz .
+          cd ..
+      - uses: actions/upload-artifact@v7
+        with:
+          name: Linux-x86_64
+          if-no-files-found: error
+          retention-days: 7
+          path: '*.tar.gz'
+
+  build_macOS:
+    needs: rebase
+    permissions:
+      contents: read
+    runs-on: macos-15
+    env:
+      qt_ver: 6.8.3
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: wy-patches
+          submodules: true
+      - name: Install dependencies
+        env:
+          HOMEBREW_NO_AUTO_UPDATE: 1
+          HOMEBREW_NO_INSTALL_CLEANUP: 1
+        run: |
+          brew install --force --overwrite \
+            bzip2 \
+            create-dmg \
+            hunspell \
+            libiconv \
+            libogg \
+            libvorbis \
+            libzim \
+            lzip \
+            ccache \
+            opencc \
+            fmt \
+            ffmpeg@6 \
+            tomlplusplus \
+            xapian || true
+      - name: ccache
+        uses: hendrikmuhs/ccache-action@v1.2
+        with:
+          key: ${{ runner.os }}-${{ runner.arch }}-wy-${{ env.qt_ver }}
+      - name: Cache EB
+        id: cache-eb
+        uses: actions/cache@v4
+        with:
+          path: |
+            /usr/local/lib/libeb*
+            /usr/local/include/eb
+            /usr/local/bin/eb*
+          key: ${{ runner.os }}-${{ runner.arch }}-eb-custom
+      - name: Install EB
+        if: steps.cache-eb.outputs.cache-hit != 'true'
+        run: |
+          git clone --depth 1 https://github.com/xiaoyifang/eb.git
+          cd eb && ./configure && make -j 8 && sudo make install && cd ..
+      - uses: jurplel/install-qt-action@v4.3.1
+        with:
+          version: ${{ env.qt_ver }}
+          arch: clang_64
+          modules: qtwebengine qtwebchannel qtpositioning qt5compat qtmultimedia qtimageformats qtspeech
+      - name: Build
+        run: |
+          mkdir build_dir
+          export PKG_CONFIG_PATH="`brew --prefix ffmpeg@6`/lib/pkgconfig:$PKG_CONFIG_PATH"
+          cmake -S . -B build_dir \
+            -G Ninja \
+            -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+            -DWITH_FFMPEG_PLAYER=ON \
+            -DWITH_QT_MULTIMEDIA=OFF \
+            -DWITH_TTS=OFF \
+            -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+            -DCMAKE_OSX_DEPLOYMENT_TARGET="12.0"
+          cmake --build build_dir
+      - name: Package
+        run: |
+          cmake --install build_dir/
+      - uses: actions/upload-artifact@v7
+        with:
+          name: macOS-ARM-Qt${{ env.qt_ver }}
+          if-no-files-found: error
+          retention-days: 7
+          archive: false
+          path: '*.dmg'
+
+  build_Windows:
+    needs: rebase
+    permissions:
+      contents: read
+    runs-on: windows-2022
+    env:
+      qt_ver: 6.8.3
+      arch: win64_msvc2022_64
+      vs_arch: amd64
+    steps:
+      - uses: jurplel/install-qt-action@v4.3.1
+        with:
+          version: ${{ env.qt_ver }}
+          arch: ${{ env.arch }}
+          modules: qtwebengine qtwebchannel qtpositioning qt5compat qtmultimedia qtimageformats qtspeech
+      - uses: actions/checkout@v6
+        with:
+          ref: wy-patches
+          submodules: true
+      - name: Setup MSVC environment
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: ${{ env.vs_arch }}
+      - name: Build
+        run: |
+          New-Item -Path './build_dir' -ItemType Directory
+
+          cmake -S . -B "./build_dir" `
+            -G Ninja `
+            -DCMAKE_C_COMPILER="cl.exe" -DCMAKE_CXX_COMPILER="cl.exe" `
+            -DCMAKE_BUILD_TYPE=RelWithDebInfo `
+            -DWITH_FFMPEG_PLAYER=OFF `
+            -DWITH_VCPKG_BREAKPAD=ON
+          cmake --build "./build_dir"
+      - name: Package
+        run: |
+          cd './build_dir'
+          cpack --verbose --trace
+          cd ..
+      - name: Move files
+        shell: bash
+        run: |
+          namePrefix=$(basename "$(ls ./build_dir/*.7z)" .7z)
+
+          cd ./build_dir
+          mv "${namePrefix}.7z" "${namePrefix}-Windows.7z"
+          mv "${namePrefix}.exe" "${namePrefix}-Windows-installer.exe"
+          EXE_PATH=$(find . -name "goldendict.exe" | head -n 1)
+          PDB_PATH=$(find . -name "goldendict.pdb" | head -n 1)
+          mv "$EXE_PATH" "./${namePrefix}-Windows-exe-only.exe"
+          mv "$PDB_PATH" "./${namePrefix}-Windows-pdb.pdb"
+          cd ..
+      - uses: actions/upload-artifact@v7
+        with:
+          name: Windows-x64-Qt${{ env.qt_ver }}
+          if-no-files-found: error
+          retention-days: 7
+          path: |
+            ./build_dir/*.7z
+
+  generate_release_metadata:
+    needs: rebase
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    outputs:
+      newTag: ${{ steps.getNewTag.outputs.newTag }}
+      releaseTitle: ${{ steps.getReleaseTitle.outputs.releaseTitle }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: wy-patches
+          fetch-depth: 0
+      - name: Load version from VERSION file
+        run: echo "version=$(xargs < VERSION)" >> $GITHUB_ENV
+      - name: Get previous wy tag
+        id: changelogTags
+        run: |
+          previousTag=$(git tag --sort=-creatordate | grep "^v.*_wy\." | head -n 1)
+          echo "prev_tag=$previousTag" >> $GITHUB_OUTPUT
+          echo "previousTag: $previousTag"
+      - name: Build Changelog
+        id: build_changelog
+        uses: orhun/git-cliff-action@v4.3.0
+        with:
+          config: cliff.toml
+          args: ${{ steps.changelogTags.outputs.prev_tag }}..HEAD
+        env:
+          OUTPUT: changelog.txt
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Append branch info to changelog
+        run: |
+          cat <<'HEREDOC' >> changelog.txt
+
+          Based on upstream: xiaoyifang/goldendict-ng@master
+          Branch: wy-patches
+          HEREDOC
+      - name: Print changelog.txt
+        run: |
+          cat changelog.txt
+      - name: Get git short SHA
+        id: shortSHA
+        run: |
+          echo "sha_short=$(git rev-parse --short=10 HEAD)" >> $GITHUB_OUTPUT
+      - name: Get new tag
+        id: getNewTag
+        run: |
+          echo "newTag=v${{ env.version }}_wy.${{ steps.shortSHA.outputs.sha_short }}" >> $GITHUB_OUTPUT
+      - name: Get release title
+        id: getReleaseTitle
+        run: |
+          echo "releaseTitle=wy-patches v${{ env.version }} (${{ steps.shortSHA.outputs.sha_short }})" >> $GITHUB_OUTPUT
+      - uses: actions/upload-artifact@v7
+        with:
+          name: changelog.txt
+          if-no-files-found: error
+          retention-days: 7
+          archive: false
+          path: ./changelog.txt
+
+  publish:
+    needs: [build_Linux, build_macOS, build_Windows, generate_release_metadata]
+    permissions:
+      contents: write
+    runs-on: ubuntu-24.04
+    env:
+      newTag: ${{ needs.generate_release_metadata.outputs.newTag }}
+      releaseTitle: ${{ needs.generate_release_metadata.outputs.releaseTitle }}
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          merge-multiple: true
+      - name: List all files
+        run: ls -R
+      - name: Create release and upload artifacts
+        run: |
+          gh release create '${{ env.newTag }}' \
+            -t '${{ env.releaseTitle }}' \
+            --target wy-patches \
+            --notes-file=./changelog.txt \
+            --latest=false \
+            --prerelease \
+            --repo ${GITHUB_REPOSITORY}
+
+          gh release upload '${{ env.newTag }}' --repo ${GITHUB_REPOSITORY} --clobber \
+            *.tar.gz *.dmg *.7z
