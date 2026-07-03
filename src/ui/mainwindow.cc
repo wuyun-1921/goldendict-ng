@@ -523,21 +523,6 @@ MainWindow::MainWindow( Config::Class & cfg_ ):
   } );
   togglePanelOrientationAction.setShortcut( QKeySequence( "Ctrl+Shift+H" ) );
 
-  // Article navigation (global to avoid ambiguous shortcut with panels)
-  articleUpAction.setShortcut( QKeySequence( "Alt+Up" ) );
-  addGlobalAction( &articleUpAction, [ this ]() {
-    auto * av = getCurrentArticleView();
-    if ( av )
-      av->moveOneArticleUp();
-  } );
-
-  articleDownAction.setShortcut( QKeySequence( "Alt+Down" ) );
-  addGlobalAction( &articleDownAction, [ this ]() {
-    auto * av = getCurrentArticleView();
-    if ( av )
-      av->moveOneArticleDown();
-  } );
-
   closeCurrentTabAction.setShortcutContext( Qt::WidgetWithChildrenShortcut );
   closeCurrentTabAction.setShortcut( QKeySequence( "Ctrl+W" ) );
   closeCurrentTabAction.setText( tr( "Close current tab" ) );
@@ -1451,6 +1436,7 @@ QTabWidget * MainWindow::findOrCreateSidePanel()
   panel->setMovable( true );
   panel->setUsesScrollButtons( true );
   panel->setDocumentMode( true );
+  panel->setContextMenuPolicy( Qt::CustomContextMenu );
 
   connect( panel, &QTabWidget::tabCloseRequested, this, [ this, panel ]( int tabIndex ) {
     auto * w = panel->widget( tabIndex );
@@ -1465,6 +1451,48 @@ QTabWidget * MainWindow::findOrCreateSidePanel()
       delete panel;
       distributePanelSizes();
     }
+  } );
+
+  connect( panel, &QWidget::customContextMenuRequested, this, [ this, panel ]( QPoint pos ) {
+    int tabIdx = panel->tabBar()->tabAt( pos );
+    if ( tabIdx < 0 )
+      return;
+
+    QMenu menu( this );
+
+    QAction * closeAction = menu.addAction( tr( "Close Tab" ) );
+    connect( closeAction, &QAction::triggered, this, [ panel, tabIdx ]() {
+      emit panel->tabCloseRequested( tabIdx );
+    } );
+
+    auto * av = qobject_cast< ArticleView * >( panel->widget( tabIdx ) );
+    if ( av ) {
+      menu.addSeparator();
+
+      QAction * aqAction = menu.addAction( tr( "Always Query This Tab" ) );
+      aqAction->setCheckable( true );
+      aqAction->setChecked( av->alwaysQuery() );
+      connect( aqAction, &QAction::toggled, this, [ av ]( bool checked ) {
+        av->setAlwaysQuery( checked );
+      } );
+
+      menu.addSeparator();
+
+      QMenu * moveMenu = menu.addMenu( tr( "Move to" ) );
+      for ( int i = 0; i < ui.panelSplitter->count(); i++ ) {
+        auto * p = qobject_cast< QTabWidget * >( ui.panelSplitter->widget( i ) );
+        if ( p == panel || !p )
+          continue;
+        QString label = ( i == 0 ) ? tr( "Main Panel" ) : tr( "Panel %1" ).arg( i );
+        QAction * moveAction = moveMenu->addAction( label );
+        int targetIdx = i;
+        connect( moveAction, &QAction::triggered, this, [ this, av, targetIdx ]() {
+          addPanel( av, targetIdx );
+        } );
+      }
+    }
+
+    menu.popup( panel->mapToGlobal( pos ) );
   } );
 
   ui.panelSplitter->addWidget( panel );
@@ -2810,7 +2838,6 @@ void MainWindow::editPreferences()
 
       view.setSelectionBySingleClick( p.selectWordBySingleClick );
       view.syncBackgroundColorWithCfgDarkReader();
-      view.getAgent().setScrollZoneSplit( p.dictPanelScrollZone );
       if ( needReload ) {
         view.reload();
       }
@@ -3471,19 +3498,22 @@ void MainWindow::showTranslationFor( const QString & word, unsigned inGroup, con
   view->showDefinition( word, group, scrollTo );
 
   // Forward query to all "Always Query" tabs (main + panels)
-  for ( int i = 0; i < ui.tabWidget->count(); i++ ) {
-    auto * av = qobject_cast< ArticleView * >( ui.tabWidget->widget( i ) );
-    if ( av && av != view && av->alwaysQuery() )
-      av->showDefinition( word, av->getCurrentGroupId(), QString() );
-  }
-  for ( int p = 1; p < ui.panelSplitter->count(); p++ ) {
-    auto * panel = qobject_cast< QTabWidget * >( ui.panelSplitter->widget( p ) );
-    if ( !panel )
-      continue;
-    for ( int i = 0; i < panel->count(); i++ ) {
-      auto * av = qobject_cast< ArticleView * >( panel->widget( i ) );
-      if ( av && av->alwaysQuery() )
+  // Skip when query originated from popup/scanpopup
+  if ( !GlobalBroadcaster::instance()->is_popup ) {
+    for ( int i = 0; i < ui.tabWidget->count(); i++ ) {
+      auto * av = qobject_cast< ArticleView * >( ui.tabWidget->widget( i ) );
+      if ( av && av != view && av->alwaysQuery() )
         av->showDefinition( word, av->getCurrentGroupId(), QString() );
+    }
+    for ( int p = 1; p < ui.panelSplitter->count(); p++ ) {
+      auto * panel = qobject_cast< QTabWidget * >( ui.panelSplitter->widget( p ) );
+      if ( !panel )
+        continue;
+      for ( int i = 0; i < panel->count(); i++ ) {
+        auto * av = qobject_cast< ArticleView * >( panel->widget( i ) );
+        if ( av && av->alwaysQuery() )
+          av->showDefinition( word, av->getCurrentGroupId(), QString() );
+      }
     }
   }
 
