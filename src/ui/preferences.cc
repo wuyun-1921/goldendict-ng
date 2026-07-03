@@ -261,13 +261,15 @@ Preferences::Preferences( QWidget * parent, Config::Class & cfg_ ):
   int unitIdx = ui.dictPanelHeightUnit->findText( p.dictPanelHeightUnit );
   if ( unitIdx >= 0 )
     ui.dictPanelHeightUnit->setCurrentIndex( unitIdx );
+  ui.dictPanelHeightUnit->setEnabled( false );
   ui.dictPanelScrollZone->setValue( p.dictPanelScrollZone );
 
   // Gray out height/spin controls when limit is unchecked
   auto updateDictPanelWidgets = [ this ]() {
     bool on = ui.dictPanelEnabled->isChecked();
     ui.dictPanelMaxHeight->setEnabled( on );
-    ui.dictPanelHeightUnit->setEnabled( on );
+    ui.dictPanelScrollZone->setEnabled( on );
+    ui.dictPanelZoneLabel->setEnabled( on );
   };
   connect( ui.dictPanelEnabled, &QCheckBox::toggled, this, updateDictPanelWidgets );
   updateDictPanelWidgets();
