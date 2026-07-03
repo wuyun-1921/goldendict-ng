@@ -29,11 +29,11 @@ jobs:
         id: rebase
         run: |
           git remote add upstream https://github.com/xiaoyifang/goldendict-ng.git || true
-          git fetch upstream master
-          UPSTREAM_SHA=$(git rev-parse upstream/master)
+          git fetch upstream staged
+          UPSTREAM_SHA=$(git rev-parse upstream/staged)
           echo "Upstream: $UPSTREAM_SHA"
 
-          git rebase upstream/master wy-patches
+          git rebase upstream/staged wy-patches
           REBASE_SHA=$(git rev-parse HEAD)
           echo "sha=$REBASE_SHA" >> $GITHUB_OUTPUT
 
@@ -270,7 +270,7 @@ jobs:
         run: |
           cat <<'HEREDOC' >> changelog.txt
 
-          Based on upstream: xiaoyifang/goldendict-ng@master
+          Based on upstream: xiaoyifang/goldendict-ng@staged
           Branch: wy-patches
           HEREDOC
       - name: Print changelog.txt
