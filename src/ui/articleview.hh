@@ -68,6 +68,8 @@ private:
   /// current searching word.
   QString currentWord;
 
+  bool m_alwaysQuery = false;
+
   /// current active dict id list;
   QStringList currentActiveDictIds;
 
@@ -109,6 +111,9 @@ public:
 
   void setCurrentGroupId( unsigned currengGrgId );
   unsigned getCurrentGroupId();
+
+  bool alwaysQuery() const { return m_alwaysQuery; }
+  void setAlwaysQuery( bool on ) { m_alwaysQuery = on; }
 
   void setAudioLink( QString audioLink );
   QString getAudioLink() const;
