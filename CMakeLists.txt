@@ -233,4 +233,13 @@ else ()
     include(cmake/Package_macOS.cmake)
 endif ()
 
+# Performance: native CPU optimizations for local Release/RelWithDebInfo builds only
+# Skip on CI (GitHub Actions sets CI=true) to match upstream flags
+if(NOT "$ENV{CI}" STREQUAL "true" AND (CMAKE_BUILD_TYPE STREQUAL "Release" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo"))
+  if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    target_compile_options(${GOLDENDICT} PRIVATE -march=native -mtune=native)
+    target_link_options(${GOLDENDICT} PRIVATE -flto=auto)
+  endif()
+endif()
+
 feature_summary(WHAT ALL DESCRIPTION "Build configuration:")
