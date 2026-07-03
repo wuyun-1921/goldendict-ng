@@ -210,7 +210,7 @@ if (
 
   function setupScrollZones() {
     document.addEventListener('wheel', function(e) {
-      var article = (document.elementFromPoint(e.clientX, e.clientY) || e.target).closest('.gdarticlebody');
+      var article = e.target.closest('.gdarticlebody');
       if (!article) return;
 
       var rect = article.getBoundingClientRect();
@@ -227,21 +227,10 @@ if (
       article.scrollTop += e.deltaY;
       return;
       }
-      // Peripheral zone: scroll the outer page, fall back to article when page is at edge
+      // Peripheral zone: scroll the outer page
       e.preventDefault();
       var scrollEl = document.scrollingElement || document.documentElement;
-      var pageAtTop    = scrollEl.scrollTop <= 0 && e.deltaY < 0;
-      var pageAtBottom = scrollEl.scrollTop + scrollEl.clientHeight >= scrollEl.scrollHeight - 1 && e.deltaY > 0;
-      if ( pageAtTop || pageAtBottom ) {
-        // Page fully displayed — scroll article instead, with edge fallback
-        const atTop    = article.scrollTop <= 0 && e.deltaY < 0;
-        const atBottom = article.scrollTop + article.clientHeight >= article.scrollHeight - 1 && e.deltaY > 0;
-        if ( atTop || atBottom )
-          return;
-        article.scrollTop += e.deltaY;
-      } else {
-        scrollEl.scrollTop += e.deltaY;
-      }
+      scrollEl.scrollTop += e.deltaY;
     }, { passive: false });
   }
 
