@@ -572,7 +572,7 @@ MainWindow::MainWindow( Config::Class & cfg_ ):
   tabMenu->addSeparator();
 
   // Move-to submenu is rebuilt dynamically in tabMenuRequested
-  m_moveToMenu = tabMenu->addMenu( tr( "Move to" ) );
+  m_moveToMenu = tabMenu->addMenu( tr( "Move to Panel" ) );
   tabMenu->addSeparator();
 
   // Always Query toggle
@@ -1478,7 +1478,7 @@ QTabWidget * MainWindow::findOrCreateSidePanel()
 
       menu.addSeparator();
 
-      QMenu * moveMenu = menu.addMenu( tr( "Move to" ) );
+      QMenu * moveMenu = menu.addMenu( tr( "Move to Panel" ) );
       for ( int i = 0; i < ui.panelSplitter->count(); i++ ) {
         auto * p = qobject_cast< QTabWidget * >( ui.panelSplitter->widget( i ) );
         if ( p == panel || !p )
@@ -1490,6 +1490,11 @@ QTabWidget * MainWindow::findOrCreateSidePanel()
           addPanel( av, targetIdx );
         } );
       }
+      moveMenu->addSeparator();
+      QAction * newPanelAction = moveMenu->addAction( tr( "New Panel" ) );
+      connect( newPanelAction, &QAction::triggered, this, [ this, av ]() {
+        addPanel( av, -1 );
+      } );
     }
 
     menu.popup( panel->mapToGlobal( pos ) );
@@ -2592,6 +2597,17 @@ void MainWindow::tabMenuRequested( QPoint pos )
           }
         } );
       }
+
+      // Always add New Panel option
+      m_moveToMenu->addSeparator();
+      QAction * newPanelAction = m_moveToMenu->addAction( tr( "New Panel" ) );
+      connect( newPanelAction, &QAction::triggered, this, [ this ]() {
+        if ( m_tabMenuTabIndex >= 0 ) {
+          auto * av = qobject_cast< ArticleView * >( ui.tabWidget->widget( m_tabMenuTabIndex ) );
+          if ( av )
+            addPanel( av, -1 );
+        }
+      } );
     }
   }
 
