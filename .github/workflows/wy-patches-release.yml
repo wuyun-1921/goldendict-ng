@@ -25,7 +25,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-      - name: Fetch upstream and rebase
+      - name: Fetch upstream and rebase, apply PR patches
         id: rebase
         run: |
           git remote add upstream https://github.com/xiaoyifang/goldendict-ng.git || true
@@ -34,6 +34,40 @@ jobs:
           echo "Upstream: $UPSTREAM_SHA"
 
           git rebase upstream/master wy-patches
+
+          # Apply feat branch patches on top of wy-patches
+          git fetch origin feat/article-extras feat/dict-panels
+
+          echo "=== Applying feat/article-extras patches ==="
+          for sha in $(git log --reverse --format=%H wy-patches..origin/feat/article-extras); do
+            if git cherry-pick --allow-empty "$sha" 2>/dev/null; then
+              echo "  OK: $sha"
+            else
+              if git diff --cached --quiet 2>/dev/null; then
+                git cherry-pick --skip
+                echo "  SKIP (already applied): $sha"
+              else
+                git cherry-pick --abort
+                echo "  CONFLICT (skipping): $sha"
+              fi
+            fi
+          done
+
+          echo "=== Applying feat/dict-panels patches ==="
+          for sha in $(git log --reverse --format=%H wy-patches..origin/feat/dict-panels); do
+            if git cherry-pick --allow-empty "$sha" 2>/dev/null; then
+              echo "  OK: $sha"
+            else
+              if git diff --cached --quiet 2>/dev/null; then
+                git cherry-pick --skip
+                echo "  SKIP (already applied): $sha"
+              else
+                git cherry-pick --abort
+                echo "  CONFLICT (skipping): $sha"
+              fi
+            fi
+          done
+
           REBASE_SHA=$(git rev-parse HEAD)
           echo "sha=$REBASE_SHA" >> $GITHUB_OUTPUT
 
