@@ -585,6 +585,16 @@ MainWindow::MainWindow( Config::Class & cfg_ ):
   tabMenu->addSeparator();
   tabMenu->addAction( &closeAllTabAction );
   tabMenu->addSeparator();
+  QAction * moveToPanelAction = tabMenu->addAction( tr( "Move to Panel" ) );
+  connect( moveToPanelAction, &QAction::triggered, this, [ this ]() {
+    int idx = ui.tabWidget->currentIndex();
+    if ( idx >= 0 ) {
+      auto * av = qobject_cast< ArticleView * >( ui.tabWidget->widget( idx ) );
+      if ( av )
+        addPanel( av );
+    }
+  } );
+  tabMenu->addSeparator();
   tabMenu->addAction( addToFavorites );
   tabMenu->addAction( &addAllTabToFavoritesAction );
 
@@ -730,6 +740,8 @@ MainWindow::MainWindow( Config::Class & cfg_ ):
   ui.tabWidget->setHideSingleTab( cfg.preferences.hideSingleTab );
   ui.tabWidget->clear();
 
+  ui.tabWidget->setContextMenuPolicy( Qt::CustomContextMenu );
+
   ui.tabWidget->setCornerWidget( &addTab, Qt::TopLeftCorner );
   //ui.tabWidget->setCornerWidget( &closeTab, Qt::TopRightCorner );
 
@@ -750,6 +762,8 @@ MainWindow::MainWindow( Config::Class & cfg_ ):
   connect( ui.tabWidget, &QTabWidget::tabCloseRequested, this, &MainWindow::tabCloseRequested );
 
   connect( ui.tabWidget, &QTabWidget::currentChanged, this, &MainWindow::tabSwitched );
+
+  connect( ui.tabWidget, &QWidget::customContextMenuRequested, this, &MainWindow::tabMenuRequested );
 
   connect( ui.tabWidget, &MainTabWidget::moveTabToPanelRequested, this, [ this ]( int idx ) {
     ArticleView * av = qobject_cast< ArticleView * >( ui.tabWidget->widget( idx ) );

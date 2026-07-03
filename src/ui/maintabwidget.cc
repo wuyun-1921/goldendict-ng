@@ -38,25 +38,6 @@ void MainTabWidget::tabRemoved( int index )
   setUsesScrollButtons( count() > 10 );
 }
 
-void MainTabWidget::contextMenuEvent( QContextMenuEvent * event )
-{
-  int tabIdx = tabBar()->tabAt( event->pos() );
-  if ( tabIdx < 0 )
-    return;
-
-  QMenu menu( this );
-  QAction * moveAction = menu.addAction( tr( "Move to Panel" ) );
-  QAction * closeAction = menu.addAction( tr( "Close Tab" ) );
-
-  QAction * chosen = menu.exec( event->globalPos() );
-  if ( chosen == moveAction ) {
-    emit moveTabToPanelRequested( tabIdx );
-  }
-  else if ( chosen == closeAction ) {
-    emit tabCloseRequested( tabIdx );
-  }
-}
-
 void MainTabWidget::updateTabBarVisibility()
 {
   tabBar()->setVisible( !hideSingleTab || tabBar()->count() > 1 );

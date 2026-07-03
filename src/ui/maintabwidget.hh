@@ -32,7 +32,6 @@ private:
   virtual void tabRemoved( int index );
   void updateTabBarVisibility();
   virtual bool eventFilter( QObject * obj, QEvent * ev );
-  void contextMenuEvent( QContextMenuEvent * event ) override;
 
   bool hideSingleTab;
 };
