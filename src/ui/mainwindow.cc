@@ -3371,6 +3371,23 @@ void MainWindow::showTranslationFor( const QString & word, unsigned inGroup, con
 
   view->showDefinition( word, group, scrollTo );
 
+  // Forward query to all "Always Query" tabs (main + panels)
+  for ( int i = 0; i < ui.tabWidget->count(); i++ ) {
+    auto * av = qobject_cast< ArticleView * >( ui.tabWidget->widget( i ) );
+    if ( av && av != view && av->alwaysQuery() )
+      av->showDefinition( word, av->getCurrentGroupId(), QString() );
+  }
+  for ( int p = 1; p < ui.panelSplitter->count(); p++ ) {
+    auto * panel = qobject_cast< QTabWidget * >( ui.panelSplitter->widget( p ) );
+    if ( !panel )
+      continue;
+    for ( int i = 0; i < panel->count(); i++ ) {
+      auto * av = qobject_cast< ArticleView * >( panel->widget( i ) );
+      if ( av && av->alwaysQuery() )
+        av->showDefinition( word, av->getCurrentGroupId(), QString() );
+    }
+  }
+
   //ui.tabWidget->setTabText( ui.tabWidget->indexOf(ui.tab), inWord.trimmed() );
 }
 
