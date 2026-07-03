@@ -1430,8 +1430,8 @@ QTabWidget * MainWindow::findOrCreateSidePanel()
     if ( panel )
       return panel;
   }
-  // Create new side panel
-  QTabWidget * panel = new QTabWidget();
+  // Create new side panel — use MainTabWidget for functional parity
+  MainTabWidget * panel = new MainTabWidget();
   panel->setTabsClosable( true );
   panel->setMovable( true );
   panel->setUsesScrollButtons( true );
