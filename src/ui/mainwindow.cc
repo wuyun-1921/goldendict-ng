@@ -177,7 +177,6 @@ MainWindow::MainWindow( Config::Class & cfg_ ):
   stopAudioAction( this ),
   togglePanelAction( this ),
   togglePanelOrientationAction( this ),
-  closePanelAction( this ),
   trayIconMenu( this ),
   addTab( this ),
   cfg( cfg_ ),
@@ -524,20 +523,6 @@ MainWindow::MainWindow( Config::Class & cfg_ ):
   } );
   togglePanelOrientationAction.setShortcut( QKeySequence( "Ctrl+Shift+H" ) );
 
-  // Close current panel tab
-  closePanelAction.setText( tr("Close Panel Tab") );
-  addGlobalAction( &closePanelAction, [ this ]() {
-    QWidget * focus = QApplication::focusWidget();
-    QWidget * w = focus;
-    while ( w && !qobject_cast< QTabWidget * >( w ) && w != ui.panelSplitter && w != ui.tabWidget )
-      w = w->parentWidget();
-    if ( auto * panel = qobject_cast< QTabWidget * >( w ) ) {
-      if ( auto * av = qobject_cast< ArticleView * >( panel->currentWidget() ) )
-        removePanel( av );
-    }
-  } );
-  closePanelAction.setShortcut( QKeySequence( "Ctrl+Shift+Q" ) );
-
   // Article navigation (global to avoid ambiguous shortcut with panels)
   articleUpAction.setShortcut( QKeySequence( "Alt+Up" ) );
   addGlobalAction( &articleUpAction, [ this ]() {
@@ -659,7 +644,6 @@ MainWindow::MainWindow( Config::Class & cfg_ ):
   ui.menuView->addSeparator();
   ui.menuView->addAction( &togglePanelAction );
   ui.menuView->addAction( &togglePanelOrientationAction );
-  ui.menuView->addAction( &closePanelAction );
 
   // Dictionary bar
 

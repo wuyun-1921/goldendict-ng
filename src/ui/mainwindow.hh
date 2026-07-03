@@ -55,7 +55,6 @@ public:
   // Side-by-side panels
   void addPanel( ArticleView * av );
   void removePanel( ArticleView * av );
-  void closePanelTab();
   void togglePanel();
   void togglePanelOrientation();
   int totalTabCount() const;
@@ -128,7 +127,7 @@ private:
   QAction escAction, focusTranslateLineAction, addTabAction, closeCurrentTabAction, closeAllTabAction,
     closeRestTabAction, switchToNextTabAction, switchToPrevTabAction, showDictBarNamesAction, toggleMenuBarAction,
     lockPanelsAction, focusHeadwordsDlgAction, focusArticleViewAction, addAllTabToFavoritesAction,
-    togglePanelAction, togglePanelOrientationAction, closePanelAction,
+    togglePanelAction, togglePanelOrientationAction,
     articleUpAction, articleDownAction;
 
   QAction useSmallIconsInToolbarsAction, useLargeIconsInToolbarsAction, useNormalIconsInToolbarsAction;
