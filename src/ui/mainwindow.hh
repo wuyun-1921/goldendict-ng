@@ -53,8 +53,10 @@ public:
   void setGroupByName( const QString & name, bool main_window );
 
   // Side-by-side panels
-  void addPanel( ArticleView * av );
+  void addPanel( ArticleView * av, int targetPanelIdx = -1 );
   void removePanel( ArticleView * av );
+  QTabWidget * panelForView( ArticleView * av );
+  QTabWidget * findOrCreateSidePanel();
   void togglePanel();
   void togglePanelOrientation();
   int totalTabCount() const;
@@ -136,6 +138,8 @@ private:
 
   QAction stopAudioAction;
   int m_tabMenuTabIndex = -1; // tab index where context menu was opened
+  QMenu * m_moveToMenu             = nullptr;
+  QAction * m_alwaysQueryMainAction = nullptr;
   QToolBar * navToolbar;
   MainStatusBar * mainStatusBar;
   QAction *navBack, *navForward, *navPronounce, *enableScanningAction;

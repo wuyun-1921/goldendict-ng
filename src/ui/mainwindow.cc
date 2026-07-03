@@ -585,16 +585,23 @@ MainWindow::MainWindow( Config::Class & cfg_ ):
   tabMenu->addSeparator();
   tabMenu->addAction( &closeAllTabAction );
   tabMenu->addSeparator();
-  QAction * moveToPanelAction = tabMenu->addAction( tr( "Move to Panel" ) );
-  connect( moveToPanelAction, &QAction::triggered, this, [ this ]() {
-    int idx = m_tabMenuTabIndex;
-    if ( idx >= 0 ) {
-      auto * av = qobject_cast< ArticleView * >( ui.tabWidget->widget( idx ) );
+
+  // Move-to submenu is rebuilt dynamically in tabMenuRequested
+  m_moveToMenu = tabMenu->addMenu( tr( "Move to" ) );
+  tabMenu->addSeparator();
+
+  // Always Query toggle
+  m_alwaysQueryMainAction = tabMenu->addAction( tr( "Always Query This Tab" ) );
+  m_alwaysQueryMainAction->setCheckable( true );
+  connect( m_alwaysQueryMainAction, &QAction::toggled, this, [ this ]( bool checked ) {
+    if ( m_tabMenuTabIndex >= 0 ) {
+      auto * av = qobject_cast< ArticleView * >( ui.tabWidget->widget( m_tabMenuTabIndex ) );
       if ( av )
-        addPanel( av );
+        av->setAlwaysQuery( checked );
     }
   } );
   tabMenu->addSeparator();
+
   tabMenu->addAction( addToFavorites );
   tabMenu->addAction( &addAllTabToFavoritesAction );
 
@@ -1359,27 +1366,92 @@ MainWindow::~MainWindow()
   delete ui.historyPaneWidget; // This should be deleted before shared History Object.
 }
 
-void MainWindow::addPanel( ArticleView * av )
+void MainWindow::addPanel( ArticleView * av, int targetPanelIdx )
 {
-  // Save title before removing from main tab widget
+  // Save title before removing from current location
   QString title = av->windowTitle();
-  int mainIdx   = ui.tabWidget->indexOf( av );
-  if ( mainIdx >= 0 && title.isEmpty() ) {
-    title = ui.tabWidget->tabText( mainIdx );
+  QTabWidget * currentPanel = nullptr;
+  int tabIdx               = -1;
+
+  // Check main tab widget
+  tabIdx = ui.tabWidget->indexOf( av );
+  if ( tabIdx >= 0 ) {
+    if ( title.isEmpty() )
+      title = ui.tabWidget->tabText( tabIdx );
+    currentPanel = ui.tabWidget;
+  }
+  else {
+    // Check side panels
+    currentPanel = panelForView( av );
+    if ( currentPanel ) {
+      tabIdx = currentPanel->indexOf( av );
+      if ( title.isEmpty() )
+        title = currentPanel->tabText( tabIdx );
+    }
   }
   if ( title.isEmpty() )
     title = tr( "(untitled)" );
 
-  // Remove from main tab widget
-  if ( mainIdx >= 0 ) {
-    ui.tabWidget->removeTab( mainIdx );
+  // Remove from current panel
+  if ( currentPanel && tabIdx >= 0 )
+    currentPanel->removeTab( tabIdx );
+
+  // Auto-create empty tab if main panel just became empty
+  if ( currentPanel == ui.tabWidget && ui.tabWidget->count() == 0 ) {
+    createNewTab( true, tr( "(empty)" ) );
   }
 
-  // Always create a new panel
+  // Determine target panel
+  QTabWidget * target = nullptr;
+  if ( targetPanelIdx < 0 || targetPanelIdx >= ui.panelSplitter->count() ) {
+    target = findOrCreateSidePanel();
+  }
+  else if ( targetPanelIdx == 0 ) {
+    target = ui.tabWidget;
+  }
+  else {
+    target = qobject_cast< QTabWidget * >( ui.panelSplitter->widget( targetPanelIdx ) );
+    if ( !target )
+      target = findOrCreateSidePanel();
+  }
+
+  // Add to target
+  int newIdx = target->addTab( av, title );
+  target->setCurrentIndex( newIdx );
+  av->focus();
+
+  // Clean up empty side panel
+  if ( currentPanel && currentPanel != ui.tabWidget && currentPanel->count() == 0 )
+    delete currentPanel;
+
+  distributePanelSizes();
+}
+
+QTabWidget * MainWindow::panelForView( ArticleView * av )
+{
+  for ( int i = 1; i < ui.panelSplitter->count(); i++ ) {
+    auto * panel = qobject_cast< QTabWidget * >( ui.panelSplitter->widget( i ) );
+    if ( panel && panel->indexOf( av ) >= 0 )
+      return panel;
+  }
+  return nullptr;
+}
+
+QTabWidget * MainWindow::findOrCreateSidePanel()
+{
+  // Look for existing side panel
+  for ( int i = 1; i < ui.panelSplitter->count(); i++ ) {
+    auto * panel = qobject_cast< QTabWidget * >( ui.panelSplitter->widget( i ) );
+    if ( panel )
+      return panel;
+  }
+  // Create new side panel
   QTabWidget * panel = new QTabWidget();
   panel->setTabsClosable( true );
   panel->setMovable( true );
   panel->setUsesScrollButtons( true );
+  panel->setDocumentMode( true );
+
   connect( panel, &QTabWidget::tabCloseRequested, this, [ this, panel ]( int tabIndex ) {
     auto * w = panel->widget( tabIndex );
     auto * avClose = qobject_cast< ArticleView * >( w );
@@ -1394,45 +1466,36 @@ void MainWindow::addPanel( ArticleView * av )
       distributePanelSizes();
     }
   } );
+
   ui.panelSplitter->addWidget( panel );
-
-  panel->addTab( av, title );
-  panel->setCurrentWidget( av );
-  av->focus();
-
-  distributePanelSizes();
+  return panel;
 }
 
 void MainWindow::removePanel( ArticleView * av )
 {
-  // Save title before removing from panel
+  QTabWidget * sourcePanel = panelForView( av );
+  if ( !sourcePanel )
+    return;
+
   QString title = av->windowTitle();
-  QTabWidget * targetPanel = nullptr;
-  for ( int i = 1; i < ui.panelSplitter->count(); i++ ) {
-    auto * panel = qobject_cast< QTabWidget * >( ui.panelSplitter->widget( i ) );
-    if ( !panel )
-      continue;
-    int tabIdx = panel->indexOf( av );
-    if ( tabIdx >= 0 ) {
-      if ( title.isEmpty() )
-        title = panel->tabText( tabIdx );
-      panel->removeTab( tabIdx );
-      targetPanel = panel;
-      break;
-    }
-  }
+  int tabIdx    = sourcePanel->indexOf( av );
+  if ( title.isEmpty() && tabIdx >= 0 )
+    title = sourcePanel->tabText( tabIdx );
   if ( title.isEmpty() )
     title = tr( "(untitled)" );
 
-  // Add back to main tab widget
+  // Remove from source
+  sourcePanel->removeTab( tabIdx );
+
+  // Add to main
   int newIdx = ui.tabWidget->addTab( av, title );
   ui.tabWidget->setCurrentIndex( newIdx );
-  av->focus(); // ensure keyboard focus stays on article view
+  av->focus();
 
-  // Clean up empty panel
-  if ( targetPanel && targetPanel->count() == 0 ) {
-    delete targetPanel;
-  }
+  // Clean up empty side panel
+  if ( sourcePanel->count() == 0 )
+    delete sourcePanel;
+
   distributePanelSizes();
 }
 
@@ -2468,6 +2531,42 @@ void MainWindow::tabSwitched( int )
 void MainWindow::tabMenuRequested( QPoint pos )
 {
   m_tabMenuTabIndex = ui.tabWidget->tabBar()->tabAt( pos );
+
+  // Update Always Query checked state
+  if ( m_alwaysQueryMainAction && m_tabMenuTabIndex >= 0 ) {
+    auto * av = qobject_cast< ArticleView * >( ui.tabWidget->widget( m_tabMenuTabIndex ) );
+    m_alwaysQueryMainAction->setChecked( av && av->alwaysQuery() );
+  }
+
+  // Rebuild Move-to submenu
+  if ( m_moveToMenu ) {
+    m_moveToMenu->clear();
+    if ( m_tabMenuTabIndex >= 0 ) {
+      for ( int i = 0; i < ui.panelSplitter->count(); i++ ) {
+        auto * p = qobject_cast< QTabWidget * >( ui.panelSplitter->widget( i ) );
+        if ( !p )
+          continue;
+        // Skip self — don't show move to current panel
+        if ( p == ui.tabWidget && ui.tabWidget->indexOf( ui.tabWidget->widget( m_tabMenuTabIndex ) ) >= 0 )
+          continue;
+        bool isCurrentPanel = ( p->indexOf( ui.tabWidget->widget( m_tabMenuTabIndex ) ) >= 0 );
+        if ( isCurrentPanel )
+          continue;
+
+        QString label = ( i == 0 ) ? tr( "Main Panel" ) : tr( "Panel %1" ).arg( i );
+        QAction * moveAction = m_moveToMenu->addAction( label );
+        int targetIdx = i;
+        connect( moveAction, &QAction::triggered, this, [ this, targetIdx ]() {
+          if ( m_tabMenuTabIndex >= 0 ) {
+            auto * av = qobject_cast< ArticleView * >( ui.tabWidget->widget( m_tabMenuTabIndex ) );
+            if ( av )
+              addPanel( av, targetIdx );
+          }
+        } );
+      }
+    }
+  }
+
   tabMenu->popup( ui.tabWidget->mapToGlobal( pos ) );
 }
 
