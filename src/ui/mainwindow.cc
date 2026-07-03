@@ -587,7 +587,7 @@ MainWindow::MainWindow( Config::Class & cfg_ ):
   tabMenu->addSeparator();
   QAction * moveToPanelAction = tabMenu->addAction( tr( "Move to Panel" ) );
   connect( moveToPanelAction, &QAction::triggered, this, [ this ]() {
-    int idx = ui.tabWidget->currentIndex();
+    int idx = m_tabMenuTabIndex;
     if ( idx >= 0 ) {
       auto * av = qobject_cast< ArticleView * >( ui.tabWidget->widget( idx ) );
       if ( av )
@@ -2467,10 +2467,7 @@ void MainWindow::tabSwitched( int )
 
 void MainWindow::tabMenuRequested( QPoint pos )
 {
-  //  // do not show this menu for single tab
-  //  if ( ui.tabWidget->count() < 2 )
-  //    return;
-
+  m_tabMenuTabIndex = ui.tabWidget->tabBar()->tabAt( pos );
   tabMenu->popup( ui.tabWidget->mapToGlobal( pos ) );
 }
 

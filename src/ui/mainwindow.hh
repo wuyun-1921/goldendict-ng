@@ -135,6 +135,7 @@ private:
   QActionGroup * smallLargeIconGroup = new QActionGroup( this );
 
   QAction stopAudioAction;
+  int m_tabMenuTabIndex = -1; // tab index where context menu was opened
   QToolBar * navToolbar;
   MainStatusBar * mainStatusBar;
   QAction *navBack, *navForward, *navPronounce, *enableScanningAction;
