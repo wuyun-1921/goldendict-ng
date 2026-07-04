@@ -363,7 +363,6 @@ void ArticleView::showDefinition( const QString & word,
 
   // QApplication::setOverrideCursor( Qt::WaitCursor );
   webview->setCursor( Qt::WaitCursor );
-  m_contentLoaded = true;
   load( req );
 
   // Update headwords history
@@ -418,7 +417,6 @@ void ArticleView::showDefinition( const QString & word,
 
   webview->setCursor( Qt::WaitCursor );
 
-  m_contentLoaded = true;
   load( req );
 
   // Update headwords history
