@@ -337,6 +337,8 @@ struct Preferences
     false;
 #endif
   bool openWebsiteInNewTab = false;
+  bool openWebsitesInPanel             = false;
+  bool saveSession                     = true;
   bool suppressWebDialogs  = false;
   bool enableJavaScriptClipboardAccess = false;
 
