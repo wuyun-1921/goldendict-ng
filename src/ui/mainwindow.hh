@@ -112,6 +112,9 @@ private:
   /// Resolve a tab's display title: windowTitle → tabText → "(untitled)"
   QString getTabTitle( QTabWidget * panel, int tabIdx, ArticleView * av );
 
+  /// Apply tab text colors: highlight focused tab, dim always-query tabs
+  void applyTabColors();
+
   /// Build "Move to Panel" submenu actions for a given tab
   void populateMoveToMenu( QMenu * menu, QTabWidget * currentPanel, int tabIdx );
 
