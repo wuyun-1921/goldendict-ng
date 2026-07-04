@@ -1736,6 +1736,11 @@ void MainWindow::loadSession()
 
   QJsonObject root = doc.object();
 
+  QString savedSearchText = root[ "searchBarText" ].toString();
+  if ( !savedSearchText.isEmpty() ) {
+    ui.translateLine->setText( savedSearchText );
+  }
+
   // Set splitter orientation
   QString orient = root[ "orientation" ].toString();
   if ( orient == QStringLiteral( "Vertical" ) )
@@ -1947,6 +1952,7 @@ void MainWindow::saveSession()
   root[ "activePanel" ] = activePanelIdx;
   root[ "orientation" ] = ( ui.panelSplitter->orientation() == Qt::Horizontal ) ? QStringLiteral( "Horizontal" ) :
                                                                                   QStringLiteral( "Vertical" );
+  root[ "searchBarText" ] = ui.translateLine->text();
 
   QJsonDocument doc( root );
   QString path = Config::getConfigDir() + "session.json";
