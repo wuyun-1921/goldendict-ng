@@ -1894,10 +1894,10 @@ void MainWindow::loadSession()
     }
   }
 
-  QTimer::singleShot(2000, this, [this]() {
-      m_sessionRestoreInProgress = false;
-  });
-  m_sessionSaved             = false;
+  QTimer::singleShot( 2000, this, [ this ]() {
+    m_sessionRestoreInProgress = false;
+  } );
+  m_sessionSaved = false;
 }
 
 void MainWindow::saveSession()
@@ -1970,10 +1970,10 @@ void MainWindow::saveSession()
   }
 
   QJsonObject root;
-  root[ "panels" ]      = panelsJson;
-  root[ "activePanel" ] = activePanelIdx;
-  root[ "orientation" ] = ( ui.panelSplitter->orientation() == Qt::Horizontal ) ? QStringLiteral( "Horizontal" ) :
-                                                                                  QStringLiteral( "Vertical" );
+  root[ "panels" ]        = panelsJson;
+  root[ "activePanel" ]   = activePanelIdx;
+  root[ "orientation" ]   = ( ui.panelSplitter->orientation() == Qt::Horizontal ) ? QStringLiteral( "Horizontal" ) :
+                                                                                    QStringLiteral( "Vertical" );
   root[ "searchBarText" ] = ui.translateLine->text();
 
   QJsonDocument doc( root );
