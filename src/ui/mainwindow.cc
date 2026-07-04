@@ -1103,6 +1103,7 @@ MainWindow::MainWindow( Config::Class & cfg_ ):
       groupList->setCurrentGroup( av->getCurrentGroupId() );
       groupList->blockSignals( false );
     }
+    applyTabColors();
   } );
 }
 
@@ -1550,25 +1551,44 @@ void MainWindow::updateTabTitleMarker( ArticleView * av )
 {
   if ( !av )
     return;
-  // Remove any existing marker suffix from the title first, then re-apply
-  auto updatePanelTab = [ av ]( QTabWidget * panel ) {
-    int idx = panel->indexOf( av );
-    if ( idx < 0 )
+  applyTabColors();
+}
+
+void MainWindow::applyTabColors()
+{
+  auto * focused = m_lastFocusedArticleView.data(); // may be nullptr
+
+  auto decorateTab = [ & ]( QTabWidget * panel, int idx ) {
+    auto * av = qobject_cast< ArticleView * >( panel->widget( idx ) );
+    if ( !av )
       return;
+
+    // Get clean title: strip [A] marker
     QString title = panel->tabText( idx );
-    // Strip any existing marker
-    if ( title.endsWith( QStringLiteral( " [A]" ) ) )
+    if ( title.endsWith( QLatin1String( " [A]" ) ) )
       title.chop( 4 );
-    // Apply marker if alwaysQuery
+
+    // Add [A] marker if alwaysQuery
     if ( av->alwaysQuery() )
       title += QStringLiteral( " [A]" );
+
     panel->setTabText( idx, title );
-    // Dim the tab text color for Always Query tabs
-    panel->tabBar()->setTabTextColor( idx, av->alwaysQuery() ? QColor( 85, 85, 85 ) : QColor() );
+
+    // Color: focused → blue, always-query (non-focused) → dim, normal → default
+    if ( av == focused )
+      panel->tabBar()->setTabTextColor( idx, QColor( "#2A82DA" ) ); // link blue
+    else if ( av->alwaysQuery() )
+      panel->tabBar()->setTabTextColor( idx, QColor( 85, 85, 85 ) );
+    else
+      panel->tabBar()->setTabTextColor( idx, QColor() );
   };
-  updatePanelTab( ui.tabWidget );
+
+  for ( int i = 0; i < ui.tabWidget->count(); i++ )
+    decorateTab( ui.tabWidget, i );
+
   forEachSidePanel( [ & ]( QTabWidget * panel ) {
-    updatePanelTab( panel );
+    for ( int i = 0; i < panel->count(); i++ )
+      decorateTab( panel, i );
   } );
 }
 
@@ -2059,7 +2079,8 @@ void MainWindow::removeGroupComboBoxActionsFromDialog( QDialog * dialog, GroupCo
 void MainWindow::commitData()
 {
   isQuitting = true;
-  saveSession();
+  if ( cfg.preferences.saveSession )
+    saveSession();
 
   // if the dictionaries is empty ,large chance that the config has corrupt.
   if ( cfg.preferences.removeInvalidIndexOnExit && !dictMap.isEmpty() ) {
@@ -2390,7 +2411,8 @@ void MainWindow::closeEvent( QCloseEvent * ev )
   // If tray icon is disabled or closing to tray is not enabled, quit the application
   if ( !cfg.preferences.enableTrayIcon || !cfg.preferences.closeToTray ) {
     ev->accept();
-    saveSession();
+    if ( cfg.preferences.saveSession )
+      saveSession();
     quitApp();
     return;
   }
@@ -3228,6 +3250,10 @@ void MainWindow::editPreferences()
       );
 
     cfg.preferences = p;
+
+    // Delete session file when restore-session is turned off
+    if ( !p.saveSession )
+      QFile::remove( Config::getConfigDir() + "session.json" );
 
     // Loop through all tabs and reload pages due to ArticleMaker's change.
     for ( int x = 0; x < ui.tabWidget->count(); ++x ) {
