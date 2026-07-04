@@ -548,11 +548,6 @@ Config::Preferences Preferences::getPreferences()
   p.ignorePunctuation      = ui.ignorePunctuation->isChecked();
   p.sessionCollapse        = ui.sessionCollapse->isChecked();
 
-  p.dictPanelEnabled    = ui.dictPanelEnabled->isChecked();
-  p.dictPanelMaxHeight  = ui.dictPanelMaxHeight->value();
-  p.dictPanelHeightUnit = ui.dictPanelHeightUnit->currentText();
-  p.dictPanelScrollZone = ui.dictPanelScrollZone->value();
-
   p.stripClipboard         = ui.stripClipboard->isChecked();
   p.raiseWindowOnSearch    = ui.raiseWindowOnSearch->isChecked();
 
