@@ -63,6 +63,10 @@ class ArticleView: public QWidget
   /// current searching word.
   QString currentWord;
 
+  bool contentLoaded = false;
+
+  bool m_alwaysQuery = false;
+
   /// current active dict id list;
   QStringList currentActiveDictIds;
 
@@ -104,6 +108,18 @@ public:
 
   void setCurrentGroupId( unsigned currengGrgId );
   unsigned getCurrentGroupId();
+
+  bool alwaysQuery() const
+  {
+    return m_alwaysQuery;
+  }
+  void setAlwaysQuery( bool on )
+  {
+    m_alwaysQuery = on;
+  }
+
+  /// Per-tab collapsed dictionary IDs — persisted across session save/restore
+  QSet< QString > collapsedDicts;
 
   void setAudioLink( QString audioLink );
   QString getAudioLink() const;
@@ -181,6 +197,11 @@ public:
 
   QString getCurrentWord();
   void setCurrentWord( const QString & word );
+
+  bool isContentLoaded() const
+  {
+    return contentLoaded;
+  }
 
   /// Returns whether this view is an internal page (welcome, untitled, etc.)
   bool isInternalPage() const
@@ -301,6 +322,10 @@ signals:
   void titleChanged( ArticleView *, const QString & title );
 
   void pageLoaded( ArticleView * );
+
+  /// Emitted when a word is looked up via in-article link click (not typing).
+  /// MainWindow uses this to forward the query to Always Query tabs.
+  void wordLookedUp( ArticleView * source, const QString & word, unsigned group, const QString & scrollTo );
 
   /// Signals that the following link was requested to be opened in new tab
   void openLinkInNewTab( const QUrl &, const QUrl & referrer, const QString & fromArticle, const Contexts & contexts );

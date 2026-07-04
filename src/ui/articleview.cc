@@ -320,6 +320,9 @@ void ArticleView::showDefinition( const QString & word,
   req.setHost( "localhost" );
   reqQuery.addQueryItem( "word", word );
   reqQuery.addQueryItem( "group", QString::number( group ) );
+  if ( !collapsedDicts.isEmpty() ) {
+    reqQuery.addQueryItem( "collapsed", QStringList( collapsedDicts.begin(), collapsedDicts.end() ).join( ',' ) );
+  }
   if ( cfg.preferences.ignoreDiacritics ) {
     reqQuery.addQueryItem( "ignore_diacritics", "1" );
   }
@@ -713,6 +716,7 @@ void ArticleView::load( const QUrl & url, const QString & customTitle )
   else {
     isWebsiteView = false;
   }
+  contentLoaded = true;
   webview->load( url );
 }
 
@@ -1184,6 +1188,7 @@ void ArticleView::openLink( const QUrl & url, const QUrl & ref, const QString & 
     }
 
     // Notify MainWindow for Always Query forwarding
+    emit wordLookedUp( this, word, getGroup( ref ), scrollTo );
   }
   else if ( url.scheme() == "gdlookup" ) // Plain html links inherit gdlookup scheme
   {
@@ -1197,7 +1202,8 @@ void ArticleView::openLink( const QUrl & url, const QUrl & ref, const QString & 
         QStringList dictsList = Utils::Url::queryItemValue( url, "dictionaries" ).split( ",", Qt::SkipEmptyParts );
 
         showDefinition( word, dictsList, getGroup( url ), false );
-            return;
+        emit wordLookedUp( this, word, getGroup( url ), scrollTo );
+        return;
       }
 
       QString newScrollTo( scrollTo );
@@ -1216,7 +1222,8 @@ void ArticleView::openLink( const QUrl & url, const QUrl & ref, const QString & 
 
       showDefinition( word, getGroup( ref ), newScrollTo, contexts );
 
-      }
+      emit wordLookedUp( this, word, getGroup( ref ), newScrollTo );
+    }
   }
   else if ( url.scheme() == "bres" || url.scheme() == "gdau" || url.scheme() == "gdvideo"
             || Utils::Url::isAudioUrl( url ) ) {
@@ -2439,6 +2446,7 @@ void ArticleView::load( QString url, const QString & customTitle )
     isWebsiteView = true;
     setWebsiteHost( qurl.host() );
   }
+  contentLoaded = true;
   webview->load( qurl );
 }
 
@@ -2540,10 +2548,10 @@ void ArticleViewAgent::collapseInHtml( const QString & dictId, bool on ) const
 {
   if ( GlobalBroadcaster::instance()->getPreference()->sessionCollapse ) {
     if ( on ) {
-      GlobalBroadcaster::instance()->collapsedDicts.insert( dictId );
+      articleView->collapsedDicts.insert( dictId );
     }
     else {
-      GlobalBroadcaster::instance()->collapsedDicts.remove( dictId );
+      articleView->collapsedDicts.remove( dictId );
     }
   }
 }
