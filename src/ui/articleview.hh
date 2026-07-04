@@ -68,7 +68,7 @@ private:
   /// current searching word.
   QString currentWord;
 
-  bool m_contentLoaded = false;
+  bool contentLoaded = false;
 
   bool m_alwaysQuery = false;
 
@@ -202,7 +202,7 @@ public:
 
   bool isContentLoaded() const
   {
-    return m_contentLoaded;
+    return contentLoaded;
   }
 
   /// Returns whether this view is an internal page (welcome, untitled, etc.)
