@@ -4055,16 +4055,28 @@ void MainWindow::forwardToAlwaysQueryTabs( ArticleView * source,
   if ( GlobalBroadcaster::instance()->is_popup )
     return;
 
+  auto forwardTo = [ & ]( ArticleView * av ) {
+    if ( !av || av == source || !av->alwaysQuery() || av->isWebsite() )
+      return;
+
+    unsigned groupId = av->getCurrentGroupId();
+    av->showDefinition( word, groupId, scrollTo );
+
+    // Also trigger website dicts directly via ArticleMaker — the showDefinition
+    // call above goes through the web-engine scheme handler which may skip
+    // dict processing for non-focused views.  The ArticleMaker path bypasses
+    // the view entirely and emits websiteDictionarySignal synchronously.
+    articleMaker.makeDefinitionFor( word, groupId, {}, {}, {}, false );
+  };
+
   for ( int i = 0; i < ui.tabWidget->count(); i++ ) {
     auto * av = qobject_cast< ArticleView * >( ui.tabWidget->widget( i ) );
-    if ( av && av != source && av->alwaysQuery() && !av->isWebsite() )
-      av->showDefinition( word, av->getCurrentGroupId(), scrollTo );
+    forwardTo( av );
   }
   forEachSidePanel( [ & ]( QTabWidget * panel ) {
     for ( int i = 0; i < panel->count(); i++ ) {
       auto * av = qobject_cast< ArticleView * >( panel->widget( i ) );
-      if ( av && av != source && av->alwaysQuery() && !av->isWebsite() )
-        av->showDefinition( word, av->getCurrentGroupId(), scrollTo );
+      forwardTo( av );
     }
   } );
 }
