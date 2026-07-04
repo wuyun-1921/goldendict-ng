@@ -3549,11 +3549,31 @@ from Stardict, Babylon and GLS dictionaries</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Open websites in panels</source>
+        <source>Articles Extra</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Restore session on startup (tabs, panels, layout)</source>
+        <source>Limit dictionary article height</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Max height:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>px</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Scroll zone split:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Width of the middle scroll zone as percentage. Moving the mouse wheel in this zone scrolls the article. Moving in the outer zones scrolls the page.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>%</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
