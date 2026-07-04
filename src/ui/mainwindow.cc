@@ -523,6 +523,17 @@ MainWindow::MainWindow( Config::Class & cfg_ ):
   } );
   togglePanelOrientationAction.setShortcut( QKeySequence( "Ctrl+Shift+H" ) );
 
+  // Always Query toggle
+  toggleAlwaysQueryAction.setText( tr( "Toggle Always Query" ) );
+  addGlobalAction( &toggleAlwaysQueryAction, [ this ]() {
+    auto * view = getCurrentArticleView();
+    if ( view && !view->isWebsite() ) {
+      view->setAlwaysQuery( !view->alwaysQuery() );
+      updateTabTitleMarker( view );
+    }
+  } );
+  toggleAlwaysQueryAction.setShortcut( QKeySequence( "Ctrl+Shift+E" ) );
+
   closeCurrentTabAction.setShortcutContext( Qt::WidgetWithChildrenShortcut );
   closeCurrentTabAction.setShortcut( QKeySequence( "Ctrl+W" ) );
   closeCurrentTabAction.setText( tr( "Close current tab" ) );
@@ -581,6 +592,20 @@ MainWindow::MainWindow( Config::Class & cfg_ ):
       auto * av = qobject_cast< ArticleView * >( ui.tabWidget->widget( tabMenuTabIndex ) );
       if ( av )
         addPanel( av, -1 );
+    }
+  } );
+  tabMenu->addSeparator();
+
+  // Always Query toggle
+  alwaysQueryMainAction = tabMenu->addAction( tr( "Always Query This Tab" ) );
+  alwaysQueryMainAction->setCheckable( true );
+  connect( alwaysQueryMainAction, &QAction::toggled, this, [ this ]( bool checked ) {
+    if ( tabMenuTabIndex >= 0 ) {
+      auto * av = qobject_cast< ArticleView * >( ui.tabWidget->widget( tabMenuTabIndex ) );
+      if ( av ) {
+        av->setAlwaysQuery( checked );
+        updateTabTitleMarker( av );
+      }
     }
   } );
   tabMenu->addSeparator();
@@ -1061,6 +1086,7 @@ MainWindow::MainWindow( Config::Class & cfg_ ):
       cfg.lastMainGroupId = grp_id;
       dictionaryBar.updateToGroup( groupInstances.findGroup( grp_id ), &cfg.mutedDictionaries, cfg );
     }
+    applyTabColors();
   } );
 }
 
@@ -1355,31 +1381,55 @@ MainWindow::~MainWindow()
   delete ui.historyPaneWidget; // This should be deleted before shared History Object.
 }
 
+QString MainWindow::getTabTitle( QTabWidget * panel, int tabIdx, ArticleView * av )
+{
+  QString title;
+  if ( av )
+    title = av->windowTitle();
+  if ( title.isEmpty() && tabIdx >= 0 && panel )
+    title = panel->tabText( tabIdx );
+  if ( title.isEmpty() )
+    title = tr( "(untitled)" );
+  return title;
+}
+
+void MainWindow::populateMoveToMenu( QMenu * menu, QTabWidget * currentPanel, int tabIdx )
+{
+  for ( int i = 0; i < ui.panelSplitter->count(); i++ ) {
+    auto * p = qobject_cast< QTabWidget * >( ui.panelSplitter->widget( i ) );
+    if ( !p || p == currentPanel )
+      continue;
+    if ( p->indexOf( currentPanel->widget( tabIdx ) ) >= 0 )
+      continue;
+    QString label        = ( i == 0 ) ? tr( "Main Panel" ) : tr( "Panel %1" ).arg( i );
+    QAction * moveAction = menu->addAction( label );
+    int targetIdx        = i;
+    connect( moveAction, &QAction::triggered, this, [ this, currentPanel, tabIdx, targetIdx ]() {
+      auto * av = qobject_cast< ArticleView * >( currentPanel->widget( tabIdx ) );
+      if ( av )
+        addPanel( av, targetIdx );
+    } );
+  }
+}
+
 void MainWindow::addPanel( ArticleView * av, int targetPanelIdx )
 {
   // Save title before removing from current location
-  QString title             = av->windowTitle();
   QTabWidget * currentPanel = nullptr;
   int tabIdx                = -1;
 
   // Check main tab widget
   tabIdx = ui.tabWidget->indexOf( av );
   if ( tabIdx >= 0 ) {
-    if ( title.isEmpty() )
-      title = ui.tabWidget->tabText( tabIdx );
     currentPanel = ui.tabWidget;
   }
   else {
     // Check side panels
     currentPanel = panelForView( av );
-    if ( currentPanel ) {
+    if ( currentPanel )
       tabIdx = currentPanel->indexOf( av );
-      if ( title.isEmpty() )
-        title = currentPanel->tabText( tabIdx );
-    }
   }
-  if ( title.isEmpty() )
-    title = tr( "(untitled)" );
+  QString title = getTabTitle( currentPanel, tabIdx, av );
 
   // Remove from current panel
   if ( currentPanel && tabIdx >= 0 )
@@ -1420,12 +1470,12 @@ void MainWindow::addPanel( ArticleView * av, int targetPanelIdx )
 
 QTabWidget * MainWindow::panelForView( ArticleView * av )
 {
-  for ( int i = 1; i < ui.panelSplitter->count(); i++ ) {
-    auto * panel = qobject_cast< QTabWidget * >( ui.panelSplitter->widget( i ) );
-    if ( panel && panel->indexOf( av ) >= 0 )
-      return panel;
-  }
-  return nullptr;
+  QTabWidget * result = nullptr;
+  forEachSidePanel( [ & ]( QTabWidget * panel ) {
+    if ( panel->indexOf( av ) >= 0 )
+      result = panel;
+  } );
+  return result;
 }
 
 void MainWindow::setupTabWidgetCommon( QTabWidget * panel )
@@ -1514,35 +1564,59 @@ QTabWidget * MainWindow::createNewSidePanel()
 
 QTabWidget * MainWindow::findOrCreateSidePanel()
 {
-  for ( int i = 1; i < ui.panelSplitter->count(); i++ ) {
-    auto * panel = qobject_cast< QTabWidget * >( ui.panelSplitter->widget( i ) );
-    if ( panel )
-      return panel;
-  }
+  QTabWidget * result = nullptr;
+  forEachSidePanel( [ & ]( QTabWidget * panel ) {
+    if ( !result )
+      result = panel;
+  } );
+  if ( result )
+    return result;
   return createNewSidePanel();
-}
-
-QString MainWindow::formatTabTitle( ArticleView * av, const QString & baseTitle )
-{
-  return baseTitle;
 }
 
 void MainWindow::updateTabTitleMarker( ArticleView * av )
 {
   if ( !av )
     return;
-  // Clear tab text color on all panels
-  auto clearColor = [ av ]( QTabWidget * panel ) {
-    int idx = panel->indexOf( av );
-    if ( idx >= 0 )
+  applyTabColors();
+}
+
+void MainWindow::applyTabColors()
+{
+  auto * focused = lastFocusedArticleView.data(); // may be nullptr
+
+  auto decorateTab = [ & ]( QTabWidget * panel, int idx ) {
+    auto * av = qobject_cast< ArticleView * >( panel->widget( idx ) );
+    if ( !av )
+      return;
+
+    // Get clean title: strip [A] marker
+    QString title = panel->tabText( idx );
+    if ( title.endsWith( QLatin1String( " [A]" ) ) )
+      title.chop( 4 );
+
+    // Add [A] marker if alwaysQuery
+    if ( av->alwaysQuery() )
+      title += QStringLiteral( " [A]" );
+
+    panel->setTabText( idx, title );
+
+    // Color: focused → blue, always-query (non-focused) → dim, normal → default
+    if ( av == focused )
+      panel->tabBar()->setTabTextColor( idx, QColor( "#2A82DA" ) ); // link blue
+    else if ( av->alwaysQuery() )
+      panel->tabBar()->setTabTextColor( idx, QColor( 85, 85, 85 ) );
+    else
       panel->tabBar()->setTabTextColor( idx, QColor() );
   };
-  clearColor( ui.tabWidget );
-  for ( int p = 1; p < ui.panelSplitter->count(); p++ ) {
-    auto * panel = qobject_cast< QTabWidget * >( ui.panelSplitter->widget( p ) );
-    if ( panel )
-      clearColor( panel );
-  }
+
+  for ( int i = 0; i < ui.tabWidget->count(); i++ )
+    decorateTab( ui.tabWidget, i );
+
+  forEachSidePanel( [ & ]( QTabWidget * panel ) {
+    for ( int i = 0; i < panel->count(); i++ )
+      decorateTab( panel, i );
+  } );
 }
 
 void MainWindow::showTabContextMenu( QTabWidget * panel, int tabIdx, QPoint globalPos )
@@ -1580,19 +1654,7 @@ void MainWindow::showTabContextMenu( QTabWidget * panel, int tabIdx, QPoint glob
   // Move to existing panels (submenu, only if side panels exist)
   if ( ui.panelSplitter->count() > 1 ) {
     QMenu * moveMenu = menu.addMenu( tr( "Move to Panel" ) );
-    for ( int i = 0; i < ui.panelSplitter->count(); i++ ) {
-      auto * p = qobject_cast< QTabWidget * >( ui.panelSplitter->widget( i ) );
-      if ( p == panel || !p )
-        continue;
-      QString label        = ( i == 0 ) ? tr( "Main Panel" ) : tr( "Panel %1" ).arg( i );
-      QAction * moveAction = moveMenu->addAction( label );
-      int targetIdx        = i;
-      connect( moveAction, &QAction::triggered, this, [ this, panel, tabIdx, targetIdx ]() {
-        auto * av = qobject_cast< ArticleView * >( panel->widget( tabIdx ) );
-        if ( av )
-          addPanel( av, targetIdx );
-      } );
-    }
+    populateMoveToMenu( moveMenu, panel, tabIdx );
   }
 
   // Move to New Panel — always available
@@ -1607,6 +1669,18 @@ void MainWindow::showTabContextMenu( QTabWidget * panel, int tabIdx, QPoint glob
 
   auto * av = qobject_cast< ArticleView * >( panel->widget( tabIdx ) );
   if ( av ) {
+    // Always Query toggle — website tabs are always queried already
+    if ( !av->isWebsite() ) {
+      QAction * aqAction = menu.addAction( tr( "Always Query This Tab" ) );
+      aqAction->setCheckable( true );
+      aqAction->setChecked( av->alwaysQuery() );
+      connect( aqAction, &QAction::toggled, this, [ this, av ]( bool checked ) {
+        av->setAlwaysQuery( checked );
+        updateTabTitleMarker( av );
+      } );
+
+      menu.addSeparator();
+    }
 
     // Add to Favorites
     QAction * favAction = menu.addAction( tr( "Add to Favorites" ) );
@@ -1639,12 +1713,8 @@ void MainWindow::removePanel( ArticleView * av )
   if ( !sourcePanel )
     return;
 
-  QString title = av->windowTitle();
   int tabIdx    = sourcePanel->indexOf( av );
-  if ( title.isEmpty() && tabIdx >= 0 )
-    title = sourcePanel->tabText( tabIdx );
-  if ( title.isEmpty() )
-    title = tr( "(untitled)" );
+  QString title = getTabTitle( sourcePanel, tabIdx, av );
 
   // Remove from source
   sourcePanel->removeTab( tabIdx );
@@ -1728,22 +1798,9 @@ void MainWindow::togglePanelOrientation()
 int MainWindow::totalTabCount() const
 {
   int count = ui.tabWidget->count();
-  for ( int i = 1; i < ui.panelSplitter->count(); i++ ) {
-    auto * panel = qobject_cast< QTabWidget * >( ui.panelSplitter->widget( i ) );
-    if ( panel )
-      count += panel->count();
-  }
-  return count;
-}
-
-int MainWindow::panelCount() const
-{
-  int count = 0;
-  for ( int i = 1; i < ui.panelSplitter->count(); i++ ) {
-    auto * panel = qobject_cast< QTabWidget * >( ui.panelSplitter->widget( i ) );
-    if ( panel && panel->count() > 0 )
-      count++;
-  }
+  forEachSidePanel( [ & ]( QTabWidget * panel ) {
+    count += panel->count();
+  } );
   return count;
 }
 
@@ -2118,7 +2175,7 @@ void MainWindow::closeEvent( QCloseEvent * ev )
   // If tray icon is disabled or closing to tray is not enabled, quit the application
   if ( !cfg.preferences.enableTrayIcon || !cfg.preferences.closeToTray ) {
     ev->accept();
-    quitApp();
+        quitApp();
     return;
   }
 
@@ -2424,6 +2481,7 @@ void MainWindow::addNewTabToPanel( QTabWidget * panel )
   connect( view, &ArticleView::sendWordToHistory, this, &MainWindow::addWordToHistory );
   connect( view, &ArticleView::sendWordToInputLine, this, &MainWindow::sendWordToInputLine );
   connect( view, &ArticleView::storeResourceSavePath, this, &MainWindow::storeResourceSavePath );
+  connect( view, &ArticleView::wordLookedUp, this, &MainWindow::forwardToAlwaysQueryTabs );
   connect( view, &ArticleView::zoomIn, this, &MainWindow::zoomin );
   connect( view, &ArticleView::zoomOut, this, &MainWindow::zoomout );
   connect( view, &ArticleView::saveBookmarkSignal, this, &MainWindow::addBookmarkToFavorite );
@@ -2478,6 +2536,9 @@ ArticleView * MainWindow::createNewTab( bool switchToIt, const QString & name )
   connect( view, &ArticleView::storeResourceSavePath, this, &MainWindow::storeResourceSavePath );
 
   connect( view, &ArticleView::zoomIn, this, &MainWindow::zoomin );
+
+  // Forward in-article link lookups to Always Query tabs
+  connect( view, &ArticleView::wordLookedUp, this, &MainWindow::forwardToAlwaysQueryTabs );
 
   connect( view, &ArticleView::zoomOut, this, &MainWindow::zoomout );
   connect( view, &ArticleView::saveBookmarkSignal, this, &MainWindow::addBookmarkToFavorite );
@@ -2644,7 +2705,7 @@ void MainWindow::titleChanged( ArticleView * view, const QString & title )
 
   int index = ui.tabWidget->indexOf( view );
   if ( index >= 0 && !escaped.isEmpty() ) {
-    ui.tabWidget->setTabText( index, formatTabTitle( view, escaped ) );
+    ui.tabWidget->setTabText( index, escaped );
     updateTabTitleMarker( view );
   }
 
@@ -2655,7 +2716,7 @@ void MainWindow::titleChanged( ArticleView * view, const QString & title )
       continue;
     int pidx = panel->indexOf( view );
     if ( pidx >= 0 && !escaped.isEmpty() ) {
-      panel->setTabText( pidx, formatTabTitle( view, escaped ) );
+      panel->setTabText( pidx, escaped );
       updateTabTitleMarker( view );
     }
   }
@@ -2744,31 +2805,17 @@ void MainWindow::tabMenuRequested( QPoint pos )
     moveToMenu->menuAction()->setVisible( hasSidePanels );
     if ( hasSidePanels && tabMenuTabIndex >= 0 ) {
       moveToMenu->clear();
-      for ( int i = 0; i < ui.panelSplitter->count(); i++ ) {
-        auto * p = qobject_cast< QTabWidget * >( ui.panelSplitter->widget( i ) );
-        if ( !p )
-          continue;
-        // Skip self
-        if ( p == ui.tabWidget && ui.tabWidget->indexOf( ui.tabWidget->widget( tabMenuTabIndex ) ) >= 0 )
-          continue;
-        if ( p->indexOf( ui.tabWidget->widget( tabMenuTabIndex ) ) >= 0 )
-          continue;
-
-        QString label        = ( i == 0 ) ? tr( "Main Panel" ) : tr( "Panel %1" ).arg( i );
-        QAction * moveAction = moveToMenu->addAction( label );
-        int targetIdx        = i;
-        connect( moveAction, &QAction::triggered, this, [ this, targetIdx ]() {
-          if ( tabMenuTabIndex >= 0 ) {
-            auto * av = qobject_cast< ArticleView * >( ui.tabWidget->widget( tabMenuTabIndex ) );
-            if ( av )
-              addPanel( av, targetIdx );
-          }
-        } );
-      }
+      populateMoveToMenu( moveToMenu, ui.tabWidget, tabMenuTabIndex );
     }
   }
 
   // Hide Always Query for website tabs, sync checked state to right-clicked tab
+  if ( alwaysQueryMainAction && tabMenuTabIndex >= 0 ) {
+    auto * av = qobject_cast< ArticleView * >( ui.tabWidget->widget( tabMenuTabIndex ) );
+    alwaysQueryMainAction->setVisible( av && !av->isWebsite() );
+    alwaysQueryMainAction->setChecked( av && av->alwaysQuery() );
+  }
+
   tabMenu->popup( ui.tabWidget->mapToGlobal( pos ) );
 }
 
@@ -3006,6 +3053,10 @@ void MainWindow::editPreferences()
 
     cfg.preferences = p;
 
+    // Delete session file when restore-session is turned off
+    if ( !p.saveSession )
+      QFile::remove( Config::getConfigDir() + "session.json" );
+
     // Loop through all tabs and reload pages due to ArticleMaker's change.
     for ( int x = 0; x < ui.tabWidget->count(); ++x ) {
       auto & view = dynamic_cast< ArticleView & >( *( ui.tabWidget->widget( x ) ) );
@@ -3150,7 +3201,7 @@ void MainWindow::currentGroupChanged( int )
       }
       view->setCurrentGroupId( grg_id );
       QString word = Folding::unescapeWildcardSymbols( view->getWord() );
-      if ( panelForView( view ) != ui.tabWidget ) {
+      if ( panelForView( view ) != nullptr ) {
         // Side panel: showDefinition directly, don't route through main panel
         view->showDefinition( word, grg_id, QString() );
       }
@@ -3365,27 +3416,29 @@ bool MainWindow::eventFilter( QObject * obj, QEvent * ev )
     auto event = dynamic_cast< QMouseEvent * >( ev );
 
     // Side panel tab bar clicks: track last focused view, handle context/close
-    for ( int i = 1; i < ui.panelSplitter->count(); i++ ) {
-      auto * panel = qobject_cast< QTabWidget * >( ui.panelSplitter->widget( i ) );
-      if ( panel && obj == panel->tabBar() ) {
+    bool handled = false;
+    forEachSidePanel( [ & ]( QTabWidget * panel ) {
+      if ( obj == panel->tabBar() ) {
         int tabIdx = panel->tabBar()->tabAt( event->pos() );
         if ( tabIdx < 0 )
-          continue;
+          return;
         // Any click on side panel tab updates last focused view
         auto * view = qobject_cast< ArticleView * >( panel->widget( tabIdx ) );
         if ( view )
           lastFocusedArticleView = view;
         if ( event->button() == Qt::MiddleButton ) {
           emit panel->tabCloseRequested( tabIdx );
-          return true;
+          handled = true;
         }
         else if ( event->button() == Qt::RightButton ) {
           showTabContextMenu( panel, tabIdx, event->globalPosition().toPoint() );
-          return true;
+          handled = true;
         }
         // Left-click: let Qt handle tab switch normally
       }
-    }
+    } );
+    if ( handled )
+      return true;
 
     return handleBackForwardMouseButtons( event );
   }
@@ -3718,6 +3771,51 @@ void MainWindow::showTranslationFor( const QString & word, unsigned inGroup, con
 
   view->showDefinition( word, group, scrollTo );
 
+  // Forward query to all Always Query tabs
+  forwardToAlwaysQueryTabs( view, word, group, scrollTo );
+
+  // ui.tabWidget->setTabText( ui.tabWidget->indexOf(ui.tab), inWord.trimmed() );
+}
+
+void MainWindow::forwardToAlwaysQueryTabs( ArticleView * source,
+                                           const QString & word,
+                                           unsigned /*unused*/,
+                                           const QString & scrollTo )
+{
+  if ( GlobalBroadcaster::instance()->is_popup )
+    return;
+
+  auto forwardTo = [ & ]( ArticleView * av ) {
+    if ( !av || av == source || !av->alwaysQuery() || av->isWebsite() )
+      return;
+
+    unsigned groupId = av->getCurrentGroupId();
+    av->showDefinition( word, groupId, scrollTo );
+
+    // Also trigger website dicts directly via ArticleMaker — the showDefinition
+    // call above goes through the web-engine scheme handler which may skip
+    // dict processing for non-focused views.  The ArticleMaker path bypasses
+    // the view entirely and emits websiteDictionarySignal synchronously.
+    QSet< QString > muted;
+    if ( groupId == GroupId::AllGroupId ) {
+      muted = cfg.mutedDictionaries;
+    }
+    else if ( const Config::Group * grp = cfg.getGroup( groupId ) ) {
+      muted = grp->mutedDictionaries;
+    }
+    articleMaker.makeDefinitionFor( word, groupId, {}, muted, {}, false );
+  };
+
+  for ( int i = 0; i < ui.tabWidget->count(); i++ ) {
+    auto * av = qobject_cast< ArticleView * >( ui.tabWidget->widget( i ) );
+    forwardTo( av );
+  }
+  forEachSidePanel( [ & ]( QTabWidget * panel ) {
+    for ( int i = 0; i < panel->count(); i++ ) {
+      auto * av = qobject_cast< ArticleView * >( panel->widget( i ) );
+      forwardTo( av );
+    }
+  } );
 }
 
 void MainWindow::showTranslationForDicts( const QString & inWord,

@@ -63,6 +63,9 @@ class ArticleView: public QWidget
   /// current searching word.
   QString currentWord;
 
+
+  bool alwaysQueryFlag = false;
+
   /// current active dict id list;
   QStringList currentActiveDictIds;
 
@@ -104,6 +107,17 @@ public:
 
   void setCurrentGroupId( unsigned currengGrgId );
   unsigned getCurrentGroupId();
+
+  bool alwaysQuery() const
+  {
+    return alwaysQueryFlag;
+  }
+  void setAlwaysQuery( bool on )
+  {
+    alwaysQueryFlag = on;
+  }
+
+  /// Per-tab collapsed dictionary IDs — persisted across session save/restore
 
   void setAudioLink( QString audioLink );
   QString getAudioLink() const;
@@ -301,6 +315,10 @@ signals:
   void titleChanged( ArticleView *, const QString & title );
 
   void pageLoaded( ArticleView * );
+
+  /// Emitted when a word is looked up via in-article link click (not typing).
+  /// MainWindow uses this to forward the query to Always Query tabs.
+  void wordLookedUp( ArticleView * source, const QString & word, unsigned group, const QString & scrollTo );
 
   /// Signals that the following link was requested to be opened in new tab
   void openLinkInNewTab( const QUrl &, const QUrl & referrer, const QString & fromArticle, const Contexts & contexts );

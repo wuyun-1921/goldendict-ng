@@ -9,6 +9,7 @@
 #include <QWebEngineDownloadRequest>
 #include <QWebEngineSettings>
 #include <QFileDialog>
+#include <QPointer>
 #include <functional>
 #include "ui_mainwindow.h"
 #include "config.hh"
@@ -56,7 +57,6 @@ public:
   void addPanel( ArticleView * av, int targetPanelIdx = -1 );
   void removePanel( ArticleView * av );
   void showTabContextMenu( QTabWidget * panel, int tabIdx, QPoint globalPos );
-  QString formatTabTitle( ArticleView * av, const QString & baseTitle );
   void updateTabTitleMarker( ArticleView * av );
   QTabWidget * panelForView( ArticleView * av );
   QTabWidget * findOrCreateSidePanel();
@@ -65,8 +65,8 @@ public:
   void togglePanel();
   void togglePanelOrientation();
   int totalTabCount() const;
-  int panelCount() const;
   void distributePanelSizes();
+
 
   enum class WildcardPolicy {
     EscapeWildcards,
@@ -96,6 +96,26 @@ private:
     Q_UNUSED( blocker ); // Avoid unused variable warning
     func();
   }
+
+  /// Iterate side panels (index 1+) with a callable
+  template< typename F >
+  void forEachSidePanel( F && fn ) const
+  {
+    for ( int i = 1; i < ui.panelSplitter->count(); i++ ) {
+      auto * panel = qobject_cast< QTabWidget * >( ui.panelSplitter->widget( i ) );
+      if ( panel )
+        fn( panel );
+    }
+  }
+
+  /// Resolve a tab's display title: windowTitle → tabText → "(untitled)"
+  QString getTabTitle( QTabWidget * panel, int tabIdx, ArticleView * av );
+
+  /// Apply tab text colors: highlight focused tab, dim always-query tabs
+  void applyTabColors();
+
+  /// Build "Move to Panel" submenu actions for a given tab
+  void populateMoveToMenu( QMenu * menu, QTabWidget * currentPanel, int tabIdx );
 
   bool handleStructuredMessage( const QString & message );
 
@@ -134,17 +154,19 @@ private:
   QAction escAction, focusTranslateLineAction, addTabAction, closeCurrentTabAction, closeAllTabAction,
     closeRestTabAction, switchToNextTabAction, switchToPrevTabAction, showDictBarNamesAction, toggleMenuBarAction,
     lockPanelsAction, focusHeadwordsDlgAction, focusArticleViewAction, addAllTabToFavoritesAction, togglePanelAction,
-    togglePanelOrientationAction;
+    togglePanelOrientationAction, toggleAlwaysQueryAction;
 
   QAction useSmallIconsInToolbarsAction, useLargeIconsInToolbarsAction, useNormalIconsInToolbarsAction;
 
   QActionGroup * smallLargeIconGroup = new QActionGroup( this );
 
   QAction stopAudioAction;
-  int tabMenuTabIndex = -1; // tab index where context menu was opened
-  ArticleView * lastFocusedArticleView = nullptr; // last ArticleView that had keyboard focus
-  QMenu * moveToMenu          = nullptr;
-  QAction * newPanelAction    = nullptr;
+  int tabMenuTabIndex = -1;                       // tab index where context menu was opened
+  QPointer< ArticleView > lastFocusedArticleView; // last ArticleView that had keyboard focus
+  bool m_sessionSaved               = false;
+  QMenu * moveToMenu              = nullptr;
+  QAction * alwaysQueryMainAction = nullptr;
+  QAction * newPanelAction        = nullptr;
   QToolBar * navToolbar;
   MainStatusBar * mainStatusBar;
   QAction *navBack, *navForward, *navPronounce, *enableScanningAction;
@@ -434,6 +456,10 @@ private slots:
   void mutedDictionariesChanged();
 
   void showTranslationFor( const QString &, unsigned inGroup = 0, const QString & scrollTo = QString() );
+
+  /// Forward word lookup from source tab to all other Always Query tabs.
+  void
+  forwardToAlwaysQueryTabs( ArticleView * source, const QString & word, unsigned /*unused*/, const QString & scrollTo );
 
   void showTranslationForDicts( const QString &,
                                 const QStringList & dictIDs,
