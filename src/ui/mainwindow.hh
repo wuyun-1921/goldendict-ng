@@ -162,11 +162,11 @@ private:
   QActionGroup * smallLargeIconGroup = new QActionGroup( this );
 
   QAction stopAudioAction;
-  int m_tabMenuTabIndex = -1; // tab index where context menu was opened
-  QPointer<ArticleView> m_lastFocusedArticleView; // last ArticleView that had keyboard focus
-  bool m_sessionRestoreInProgress = false;
-  bool m_sessionSaved             = false;
-  QMenu * m_moveToMenu             = nullptr;
+  int m_tabMenuTabIndex = -1;                       // tab index where context menu was opened
+  QPointer< ArticleView > m_lastFocusedArticleView; // last ArticleView that had keyboard focus
+  bool m_sessionRestoreInProgress   = false;
+  bool m_sessionSaved               = false;
+  QMenu * m_moveToMenu              = nullptr;
   QAction * m_alwaysQueryMainAction = nullptr;
   QAction * m_newPanelAction        = nullptr;
   QToolBar * navToolbar;
@@ -458,7 +458,8 @@ private slots:
   void showTranslationFor( const QString &, unsigned inGroup = 0, const QString & scrollTo = QString() );
 
   /// Forward word lookup from source tab to all other Always Query tabs.
-  void forwardToAlwaysQueryTabs( ArticleView * source, const QString & word, unsigned /*unused*/, const QString & scrollTo );
+  void
+  forwardToAlwaysQueryTabs( ArticleView * source, const QString & word, unsigned /*unused*/, const QString & scrollTo );
 
   void showTranslationForDicts( const QString &,
                                 const QStringList & dictIDs,
