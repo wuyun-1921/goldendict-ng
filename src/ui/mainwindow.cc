@@ -4079,7 +4079,14 @@ void MainWindow::forwardToAlwaysQueryTabs( ArticleView * source,
     // call above goes through the web-engine scheme handler which may skip
     // dict processing for non-focused views.  The ArticleMaker path bypasses
     // the view entirely and emits websiteDictionarySignal synchronously.
-    articleMaker.makeDefinitionFor( word, groupId, {}, {}, {}, false );
+    QSet< QString > muted;
+    if ( groupId == GroupId::AllGroupId ) {
+      muted = cfg.mutedDictionaries;
+    }
+    else if ( const Config::Group * grp = cfg.getGroup( groupId ) ) {
+      muted = grp->mutedDictionaries;
+    }
+    articleMaker.makeDefinitionFor( word, groupId, {}, muted, {}, false );
   };
 
   for ( int i = 0; i < ui.tabWidget->count(); i++ ) {
