@@ -1874,7 +1874,9 @@ void MainWindow::loadSession()
     }
   }
 
-  m_sessionRestoreInProgress = false;
+  QTimer::singleShot(2000, this, [this]() {
+      m_sessionRestoreInProgress = false;
+  });
   m_sessionSaved             = false;
 }
 
