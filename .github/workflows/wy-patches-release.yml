@@ -25,15 +25,33 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-      - name: Fetch upstream and rebase
+      - name: Fetch upstream and feature branches
         id: rebase
         run: |
           git remote add upstream https://github.com/xiaoyifang/goldendict-ng.git || true
           git fetch upstream staged
+          git fetch origin feat/dict-panels:feat/dict-panels feat/article-extras:feat/article-extras
           UPSTREAM_SHA=$(git rev-parse upstream/staged)
           echo "Upstream: $UPSTREAM_SHA"
 
-          git rebase upstream/staged wy-patches
+          # Rebase wy-patches onto upstream/staged
+          git rebase upstream/staged wy-patches -X theirs || {
+            echo "Rebase failed, aborting"
+            git rebase --abort
+            exit 1
+          }
+
+          # Merge feature branches, feature branch wins on conflict
+          git checkout wy-patches
+          git merge feat/dict-panels -X theirs --no-edit || {
+            echo "Merge feat/dict-panels failed"
+            exit 1
+          }
+          git merge feat/article-extras -X theirs --no-edit || {
+            echo "Merge feat/article-extras failed"
+            exit 1
+          }
+
           REBASE_SHA=$(git rev-parse HEAD)
           echo "sha=$REBASE_SHA" >> $GITHUB_OUTPUT
 
