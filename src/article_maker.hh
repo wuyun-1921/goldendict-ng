@@ -42,9 +42,10 @@ public:
   sptr< Dictionary::DataRequest > makeDefinitionFor( const QString & word,
                                                      unsigned groupId,
                                                      const QMap< QString, QString > & contexts,
-                                                     const QSet< QString > & mutedDicts = QSet< QString >(),
-                                                     const QStringList & dictIDs        = QStringList(),
-                                                     bool ignoreDiacritics              = false ) const;
+                                                     const QSet< QString > & mutedDicts   = QSet< QString >(),
+                                                     const QStringList & dictIDs          = QStringList(),
+                                                     bool ignoreDiacritics                = false,
+                                                     const QSet< QString > & collapsedIds = QSet< QString >() ) const;
 
   /// Creates a welcome page. The result is guaranteed to be instant.
   sptr< Dictionary::DataRequest > makeWelcomePage() const;
@@ -116,6 +117,7 @@ class ArticleRequest: public Dictionary::DataRequest
   int articleSizeLimit;
   bool needExpandOptionalParts;
   bool ignoreDiacritics;
+  QSet< QString > collapsedDicts;
 
 public:
 
@@ -126,7 +128,8 @@ public:
                   const std::string & header,
                   int sizeLimit,
                   bool needExpandOptionalParts_,
-                  bool ignoreDiacritics = false );
+                  const QSet< QString > & collapsedIds = QSet< QString >(),
+                  bool ignoreDiacritics                 = false );
 
   virtual void cancel();
   //  { finish(); } // Add our own requests cancellation here

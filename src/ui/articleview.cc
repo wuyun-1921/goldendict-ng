@@ -320,6 +320,9 @@ void ArticleView::showDefinition( const QString & word,
   req.setHost( "localhost" );
   reqQuery.addQueryItem( "word", word );
   reqQuery.addQueryItem( "group", QString::number( group ) );
+  if ( !collapsedDicts.isEmpty() ) {
+    reqQuery.addQueryItem( "collapsed", QStringList( collapsedDicts.begin(), collapsedDicts.end() ).join( ',' ) );
+  }
   if ( cfg.preferences.ignoreDiacritics ) {
     reqQuery.addQueryItem( "ignore_diacritics", "1" );
   }
@@ -2545,10 +2548,10 @@ void ArticleViewAgent::collapseInHtml( const QString & dictId, bool on ) const
 {
   if ( GlobalBroadcaster::instance()->getPreference()->sessionCollapse ) {
     if ( on ) {
-      GlobalBroadcaster::instance()->collapsedDicts.insert( dictId );
+      articleView->collapsedDicts.insert( dictId );
     }
     else {
-      GlobalBroadcaster::instance()->collapsedDicts.remove( dictId );
+      articleView->collapsedDicts.remove( dictId );
     }
   }
 }

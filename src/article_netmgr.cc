@@ -187,7 +187,12 @@ sptr< Dictionary::DataRequest > ArticleNetworkAccessManager::handleLookupScheme(
   unsigned group    = Utils::Url::queryItemValue( url, "group" ).toUInt( &groupIsValid );
 
   if ( QString dictIDs = Utils::Url::queryItemValue( url, "dictionaries" ); !dictIDs.isEmpty() ) {
-    return articleMaker.makeDefinitionFor( word, group, {}, {}, dictIDs.split( "," ) );
+    QSet< QString > collapsedIds;
+    if ( QString collapsedStr = Utils::Url::queryItemValue( url, "collapsed" ); !collapsedStr.isEmpty() ) {
+      for ( const auto & id : collapsedStr.split( ',' ) )
+        collapsedIds.insert( id );
+    }
+    return articleMaker.makeDefinitionFor( word, group, {}, {}, dictIDs.split( "," ), false, collapsedIds );
   }
 
   // Get muted dictionaries
@@ -215,8 +220,14 @@ sptr< Dictionary::DataRequest > ArticleNetworkAccessManager::handleLookupScheme(
   QMap< QString, QString > contexts = Utils::str2map( Utils::Url::queryItemValue( url, "contexts" ) );
   bool ignoreDiacritics             = Utils::Url::queryItemValue( url, "ignore_diacritics" ) == "1";
 
+  QSet< QString > collapsedIds;
+  if ( QString collapsedStr = Utils::Url::queryItemValue( url, "collapsed" ); !collapsedStr.isEmpty() ) {
+    for ( const auto & id : collapsedStr.split( ',' ) )
+      collapsedIds.insert( id );
+  }
+
   if ( groupIsValid && !word.isEmpty() ) {
-    return articleMaker.makeDefinitionFor( word, group, contexts, mutedDicts, {}, ignoreDiacritics );
+    return articleMaker.makeDefinitionFor( word, group, contexts, mutedDicts, {}, ignoreDiacritics, collapsedIds );
   }
 
   return std::make_shared< Dictionary::DataRequestInstant >( false );

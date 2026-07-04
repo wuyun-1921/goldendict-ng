@@ -118,6 +118,9 @@ public:
     m_alwaysQuery = on;
   }
 
+  /// Per-tab collapsed dictionary IDs — persisted across session save/restore
+  QSet< QString > collapsedDicts;
+
   void setAudioLink( QString audioLink );
   QString getAudioLink() const;
 

@@ -291,7 +291,8 @@ sptr< Dictionary::DataRequest > ArticleMaker::makeDefinitionFor( const QString &
                                                                  const QMap< QString, QString > & contexts,
                                                                  const QSet< QString > & mutedDicts,
                                                                  const QStringList & dictIDs,
-                                                                 bool ignoreDiacritics ) const
+                                                                 bool ignoreDiacritics,
+                                                                 const QSet< QString > & collapsedIds ) const
 {
   if ( !dictIDs.isEmpty() ) {
     std::vector< sptr< Dictionary::Class > > dicts;
@@ -314,7 +315,8 @@ sptr< Dictionary::DataRequest > ArticleMaker::makeDefinitionFor( const QString &
                                                dicts,
                                                header,
                                                -1,
-                                               true );
+                                               true,
+                                               collapsedIds );
   }
 
   // Find the given group
@@ -355,6 +357,7 @@ sptr< Dictionary::DataRequest > ArticleMaker::makeDefinitionFor( const QString &
       header,
       cfg.collapseBigArticles ? cfg.articleSizeLimit : -1,
       cfg.alwaysExpandOptionalParts,
+      collapsedIds,
       ignoreDiacritics );
   }
   else {
@@ -366,6 +369,7 @@ sptr< Dictionary::DataRequest > ArticleMaker::makeDefinitionFor( const QString &
       header,
       cfg.collapseBigArticles ? cfg.articleSizeLimit : -1,
       cfg.alwaysExpandOptionalParts,
+      collapsedIds,
       ignoreDiacritics );
   }
 }
@@ -435,6 +439,7 @@ ArticleRequest::ArticleRequest( const QString & word,
                                 const string & header,
                                 int sizeLimit,
                                 bool needExpandOptionalParts_,
+                                const QSet< QString > & collapsedIds,
                                 bool ignoreDiacritics_ ):
   word( word ),
   group( group_ ),
@@ -442,6 +447,7 @@ ArticleRequest::ArticleRequest( const QString & word,
   activeDicts( activeDicts_ ),
   articleSizeLimit( sizeLimit ),
   needExpandOptionalParts( needExpandOptionalParts_ ),
+  collapsedDicts( collapsedIds ),
   ignoreDiacritics( ignoreDiacritics_ )
 {
   // No need to lock dataMutex on construction
@@ -553,7 +559,7 @@ int ArticleRequest::findEndOfCloseDiv( const QString & str, int pos )
 
 bool ArticleRequest::isCollapsable( Dictionary::DataRequest & req, const QString & dictId )
 {
-  if ( GlobalBroadcaster::instance()->collapsedDicts.contains( dictId ) ) {
+  if ( collapsedDicts.contains( dictId ) ) {
     return true;
   }
 

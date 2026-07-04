@@ -1808,6 +1808,7 @@ void MainWindow::loadSession()
     QString word;
     unsigned group;
     bool alwaysQuery;
+    QSet< QString > collapsedDicts;
   };
   QVector< QVector< TabInfo > > allPanels;
   QVector< int > activeTabs;
@@ -1826,6 +1827,12 @@ void MainWindow::loadSession()
       info.word        = tabJson[ "word" ].toString();
       info.group       = (unsigned)tabJson[ "group" ].toInt();
       info.alwaysQuery = tabJson[ "alwaysQuery" ].toBool();
+      if ( tabJson.contains( "collapsed" ) ) {
+        for ( const auto & id : tabJson[ "collapsed" ].toString().split( ',' ) ) {
+          if ( !id.isEmpty() )
+            info.collapsedDicts.insert( id );
+        }
+      }
       panelTabs.append( info );
     }
     allPanels.append( panelTabs );
@@ -1856,6 +1863,7 @@ void MainWindow::loadSession()
       av->setAlwaysQuery( info.alwaysQuery );
       av->setCurrentGroupId( info.group );
       av->setCurrentWord( info.word );
+      av->collapsedDicts = info.collapsedDicts;
       updateTabTitleMarker( av );
     }
   }
@@ -1881,6 +1889,7 @@ void MainWindow::loadSession()
       ArticleView * av = createNewTab( false, info.word );
       av->setAlwaysQuery( info.alwaysQuery );
       av->setCurrentGroupId( info.group );
+      av->collapsedDicts = info.collapsedDicts;
       addPanel( av, panelIdx ); // move to target side panel
       av->setCurrentWord( info.word );
       updateTabTitleMarker( av );
@@ -1976,6 +1985,10 @@ void MainWindow::saveSession()
       tabJson[ "word" ]        = word;
       tabJson[ "group" ]       = (int)av->getCurrentGroupId();
       tabJson[ "alwaysQuery" ] = av->alwaysQuery();
+      // Save collapsed dict IDs as comma-separated string
+      if ( !av->collapsedDicts.isEmpty() ) {
+        tabJson[ "collapsed" ] = QStringList( av->collapsedDicts.begin(), av->collapsedDicts.end() ).join( ',' );
+      }
       tabsJson.append( tabJson );
       nonWebsiteCount++;
     }
