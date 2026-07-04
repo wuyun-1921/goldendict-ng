@@ -380,6 +380,7 @@ Preferences::Preferences( QWidget * parent, Config::Class & cfg_ ):
   ui.enableApplicationLog->setChecked( p.enableApplicationLog );
   ui.openWebsiteInNewTab->setChecked( p.openWebsiteInNewTab );
   ui.openWebsitesInPanel->setChecked( p.openWebsitesInPanel );
+  ui.saveSession->setChecked( p.saveSession );
   ui.suppressWebDialogs->setChecked( p.suppressWebDialogs );
   ui.enableJavaScriptClipboard->setChecked( p.enableJavaScriptClipboardAccess );
 
@@ -571,6 +572,7 @@ Config::Preferences Preferences::getPreferences()
   p.enableApplicationLog     = ui.enableApplicationLog->isChecked();
   p.openWebsiteInNewTab             = ui.openWebsiteInNewTab->isChecked();
 p.openWebsitesInPanel            = ui.openWebsitesInPanel->isChecked();
+  p.saveSession                     = ui.saveSession->isChecked();
   p.suppressWebDialogs       = ui.suppressWebDialogs->isChecked();
   p.enableJavaScriptClipboardAccess = ui.enableJavaScriptClipboard->isChecked();
 

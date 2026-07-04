@@ -55,13 +55,20 @@ public:
   // Side-by-side panels
   void addPanel( ArticleView * av, int targetPanelIdx = -1 );
   void removePanel( ArticleView * av );
+  void showTabContextMenu( QTabWidget * panel, int tabIdx, QPoint globalPos );
+  QString formatTabTitle( ArticleView * av, const QString & baseTitle );
+  void updateTabTitleMarker( ArticleView * av );
   QTabWidget * panelForView( ArticleView * av );
   QTabWidget * findOrCreateSidePanel();
+  QTabWidget * createNewSidePanel();
   void togglePanel();
   void togglePanelOrientation();
   int totalTabCount() const;
-int panelCount() const;
+  int panelCount() const;
   void distributePanelSizes();
+  void saveSession();
+  void loadSession();
+
 
   enum class WildcardPolicy {
     EscapeWildcards,
@@ -128,9 +135,8 @@ private:
 
   QAction escAction, focusTranslateLineAction, addTabAction, closeCurrentTabAction, closeAllTabAction,
     closeRestTabAction, switchToNextTabAction, switchToPrevTabAction, showDictBarNamesAction, toggleMenuBarAction,
-    lockPanelsAction, focusHeadwordsDlgAction, focusArticleViewAction, addAllTabToFavoritesAction,
-    togglePanelAction, togglePanelOrientationAction,
-    articleUpAction, articleDownAction;
+    lockPanelsAction, focusHeadwordsDlgAction, focusArticleViewAction, addAllTabToFavoritesAction, togglePanelAction,
+    togglePanelOrientationAction, toggleAlwaysQueryAction;
 
   QAction useSmallIconsInToolbarsAction, useLargeIconsInToolbarsAction, useNormalIconsInToolbarsAction;
 
@@ -138,8 +144,11 @@ private:
 
   QAction stopAudioAction;
   int m_tabMenuTabIndex = -1; // tab index where context menu was opened
+  ArticleView * m_lastFocusedArticleView = nullptr; // last ArticleView that had keyboard focus
+  bool m_sessionRestoreInProgress = false;
   QMenu * m_moveToMenu             = nullptr;
   QAction * m_alwaysQueryMainAction = nullptr;
+  QAction * m_newPanelAction        = nullptr;
   QToolBar * navToolbar;
   MainStatusBar * mainStatusBar;
   QAction *navBack, *navForward, *navPronounce, *enableScanningAction;
@@ -427,6 +436,9 @@ private slots:
   void mutedDictionariesChanged();
 
   void showTranslationFor( const QString &, unsigned inGroup = 0, const QString & scrollTo = QString() );
+
+  /// Forward word lookup from source tab to all other Always Query tabs.
+  void forwardToAlwaysQueryTabs( ArticleView * source, const QString & word, unsigned group, const QString & scrollTo );
 
   void showTranslationForDicts( const QString &,
                                 const QStringList & dictIDs,

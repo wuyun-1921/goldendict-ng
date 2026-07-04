@@ -962,6 +962,10 @@ Class load()
       c.preferences.openWebsitesInPanel = ( preferences.namedItem( "openWebsitesInPanel" ).toElement().text() == "1" );
     }
 
+    if ( !preferences.namedItem( "saveSession" ).isNull() ) {
+      c.preferences.saveSession = ( preferences.namedItem( "saveSession" ).toElement().text() == "1" );
+    }
+
     if ( !preferences.namedItem( "suppressWebDialogs" ).isNull() ) {
       c.preferences.suppressWebDialogs = ( preferences.namedItem( "suppressWebDialogs" ).toElement().text() == "1" );
     }
@@ -1997,6 +2001,10 @@ void save( const Class & c )
 
     opt = dd.createElement( "openWebsitesInPanel" );
     opt.appendChild( dd.createTextNode( c.preferences.openWebsitesInPanel ? "1" : "0" ) );
+    preferences.appendChild( opt );
+
+    opt = dd.createElement( "saveSession" );
+    opt.appendChild( dd.createTextNode( c.preferences.saveSession ? "1" : "0" ) );
     preferences.appendChild( opt );
 
     opt = dd.createElement( "suppressWebDialogs" );

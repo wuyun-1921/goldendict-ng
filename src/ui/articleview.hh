@@ -68,6 +68,8 @@ private:
   /// current searching word.
   QString currentWord;
 
+  bool m_contentLoaded = false;
+
   bool m_alwaysQuery = false;
 
   /// current active dict id list;
@@ -75,7 +77,7 @@ private:
 
   bool historyMode = false;
 
-  //current active dictionary id;
+  // current active dictionary id;
   QString activeDictId;
 
   QString audioLink_;
@@ -112,8 +114,14 @@ public:
   void setCurrentGroupId( unsigned currengGrgId );
   unsigned getCurrentGroupId();
 
-  bool alwaysQuery() const { return m_alwaysQuery; }
-  void setAlwaysQuery( bool on ) { m_alwaysQuery = on; }
+  bool alwaysQuery() const
+  {
+    return m_alwaysQuery;
+  }
+  void setAlwaysQuery( bool on )
+  {
+    m_alwaysQuery = on;
+  }
 
   void setAudioLink( QString audioLink );
   QString getAudioLink() const;
@@ -192,6 +200,11 @@ public:
   QString getCurrentWord();
   void setCurrentWord( const QString & word );
 
+  bool isContentLoaded() const
+  {
+    return m_contentLoaded;
+  }
+
   /// Returns whether this view is an internal page (welcome, untitled, etc.)
   bool isInternalPage() const
   {
@@ -247,7 +260,7 @@ public:
     if ( !qFuzzyCompare( existedFactor, factor ) ) {
       qDebug() << "zoom factor ,existed:" << existedFactor << "set:" << factor;
       webview->setZoomFactor( factor );
-      //webview->page()->setZoomFactor(factor);
+      // webview->page()->setZoomFactor(factor);
     }
   }
 
@@ -318,6 +331,10 @@ signals:
 
   void pageLoaded( ArticleView * );
 
+  /// Emitted when a word is looked up via in-article link click (not typing).
+  /// MainWindow uses this to forward the query to Always Query tabs.
+  void wordLookedUp( ArticleView * source, const QString & word, unsigned group, const QString & scrollTo );
+
   /// Signals that the following link was requested to be opened in new tab
   void openLinkInNewTab( const QUrl &, const QUrl & referrer, const QString & fromArticle, const Contexts & contexts );
   /// Signals that the following definition was requested to be showed in new tab
@@ -384,9 +401,10 @@ public slots:
 
   /// Selects an entire text of the current article
   void selectCurrentArticle();
-  //receive signal from weburlinterceptor.
+  // receive signal from weburlinterceptor.
   void linkClicked( const QUrl & );
-  //aim to receive signal from html. the fragment url click to  navigation through page wil not be intecepted by weburlinteceptor
+  // aim to receive signal from html. the fragment url click to  navigation through page wil not be intecepted by
+  // weburlinteceptor
   Q_INVOKABLE void linkClickedInHtml( const QUrl & );
 private slots:
   void inspectElement();
@@ -408,6 +426,12 @@ private slots:
   void pasteTriggered();
 
   unsigned getCurrentGroup();
+
+  /// Navigates to the previous article relative to the active one.
+  void moveOneArticleUp();
+
+  /// Navigates to the next article relative to the active one.
+  void moveOneArticleDown();
 
   void on_searchText_textEdited();
   void on_searchText_returnPressed();

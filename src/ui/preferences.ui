@@ -2012,6 +2012,16 @@ from Stardict, Babylon and GLS dictionaries</string>
            </widget>
           </item>
           <item>
+           <widget class="QCheckBox" name="saveSession">
+            <property name="text">
+             <string>Restore session on startup (tabs, panels, layout)</string>
+            </property>
+            <property name="checked">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+          <item>
            <widget class="QCheckBox" name="suppressWebDialogs">
             <property name="toolTip">
              <string>Suppress JavaScript alerts, confirms, and prompts in the article view.</string>

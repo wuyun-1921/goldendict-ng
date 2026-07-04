@@ -283,7 +283,7 @@ ArticleView::~ArticleView()
 {
   cleanupTemp();
   audioPlayer->stop();
-  //channel->deregisterObject(this);
+  // channel->deregisterObject(this);
 #ifndef Q_OS_MACOS
   webview->ungrabGesture( Gestures::GDPinchGestureType );
   webview->ungrabGesture( Gestures::GDSwipeGestureType );
@@ -355,11 +355,12 @@ void ArticleView::showDefinition( const QString & word,
   // Any search opened is probably irrelevant now
   closeSearch();
 
-  //log, req request
+  // log, req request
   qDebug() << "req url:" << req.toString();
 
-  //QApplication::setOverrideCursor( Qt::WaitCursor );
+  // QApplication::setOverrideCursor( Qt::WaitCursor );
   webview->setCursor( Qt::WaitCursor );
+  m_contentLoaded = true;
   load( req );
 
   // Update headwords history
@@ -381,7 +382,7 @@ void ArticleView::showDefinition( const QString & word,
     return;
   }
   historyMode = false;
-  //clear founded dicts.
+  // clear founded dicts.
   currentActiveDictIds.clear();
   // first, let's stop the player
   audioPlayer->stop();
@@ -414,6 +415,7 @@ void ArticleView::showDefinition( const QString & word,
 
   webview->setCursor( Qt::WaitCursor );
 
+  m_contentLoaded = true;
   load( req );
 
   // Update headwords history
@@ -536,7 +538,7 @@ void ArticleView::loadFinished( bool result )
       }
     }
     else {
-      //clear current active dictionary id;
+      // clear current active dictionary id;
       setActiveArticleId( "" );
     }
 
@@ -565,8 +567,8 @@ void ArticleView::loadFinished( bool result )
     injectWebsiteConfigScript();
   }
 
-  //the click audio url such as gdau://xxxx ,webview also emit a pageLoaded signal but with the result is false.need future investigation.
-  //the audio link click ,no need to emit pageLoaded signal
+  // the click audio url such as gdau://xxxx ,webview also emit a pageLoaded signal but with the result is false.need
+  // future investigation. the audio link click ,no need to emit pageLoaded signal
   if ( result ) {
     emit pageLoaded( this );
   }
@@ -710,6 +712,7 @@ void ArticleView::load( const QUrl & url, const QString & customTitle )
   else {
     isWebsiteView = false;
   }
+  m_contentLoaded = true;
   webview->load( url );
 }
 
@@ -1147,8 +1150,8 @@ void ArticleView::openLink( const QUrl & url, const QUrl & ref, const QString & 
 
   auto [ valid, word ] = Utils::Url::getQueryWord( url );
   if ( valid && word.isEmpty() ) {
-    //if valid=true and word is empty,the url must be a invalid gdlookup url.
-    //else if valid=false,the url should be external urls.
+    // if valid=true and word is empty,the url must be a invalid gdlookup url.
+    // else if valid=false,the url should be external urls.
     return;
   }
 
@@ -1179,6 +1182,9 @@ void ArticleView::openLink( const QUrl & url, const QUrl & ref, const QString & 
     else {
       showDefinition( word, getGroup( ref ), scrollTo, contexts );
     }
+
+    // Notify MainWindow for Always Query forwarding
+    emit wordLookedUp( this, word, getGroup( ref ), scrollTo );
   }
   else if ( url.scheme() == "gdlookup" ) // Plain html links inherit gdlookup scheme
   {
@@ -1192,6 +1198,7 @@ void ArticleView::openLink( const QUrl & url, const QUrl & ref, const QString & 
         QStringList dictsList = Utils::Url::queryItemValue( url, "dictionaries" ).split( ",", Qt::SkipEmptyParts );
 
         showDefinition( word, dictsList, getGroup( url ), false );
+        emit wordLookedUp( this, word, getGroup( url ), scrollTo );
         return;
       }
 
@@ -1210,6 +1217,8 @@ void ArticleView::openLink( const QUrl & url, const QUrl & ref, const QString & 
       }
 
       showDefinition( word, getGroup( ref ), newScrollTo, contexts );
+
+      emit wordLookedUp( this, word, getGroup( ref ), newScrollTo );
     }
   }
   else if ( url.scheme() == "bres" || url.scheme() == "gdau" || url.scheme() == "gdvideo"
@@ -2074,13 +2083,13 @@ void ArticleView::on_searchCloseButton_clicked()
 
 void ArticleView::on_searchCaseSensitive_clicked( bool checked )
 {
-  //clear the previous findText results.
-  //when the results is empty, the highlight has not been removed.more likely a qt bug.
+  // clear the previous findText results.
+  // when the results is empty, the highlight has not been removed.more likely a qt bug.
   webview->findText( "" );
   performFindOperation( false );
 }
 
-//the id start with "gdform-"
+// the id start with "gdform-"
 void ArticleView::onJsActiveArticleChanged( const QString & id )
 {
   // Skip dictionary article change handling for website views
@@ -2433,6 +2442,7 @@ void ArticleView::load( QString url, const QString & customTitle )
     isWebsiteView = true;
     setWebsiteHost( qurl.host() );
   }
+  m_contentLoaded = true;
   webview->load( qurl );
 }
 
