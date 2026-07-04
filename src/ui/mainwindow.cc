@@ -5506,9 +5506,6 @@ void MainWindow::openWebsiteInNewTab( QString name, QString url, QString dictId,
     return;
   }
 
-  if ( m_sessionRestoreInProgress )
-    return;
-
   auto view = findArticleViewByDictId( dictId );
   if ( view == nullptr ) {
     // Truncate long website names for tab labels
