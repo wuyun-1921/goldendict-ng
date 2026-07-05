@@ -31,14 +31,15 @@ jobs:
             libopencc-dev libfmt-dev \
             libtomlplusplus-dev \
             libxapian-dev libzim-dev \
-            libeb16-dev \
+            libeb-dev \
             qt6-base-dev qt6-webengine-dev qt6-webchannel-dev \
             qt6-positioning-dev qt6-multimedia-dev \
             qt6-speech-dev qt6-tools-dev qt6-image-formats-plugins \
+            qt6-core5compat-dev \
             libqt6webenginecore6 libqt6webenginewidgets6 \
             libqt6webchannel6 libqt6positioning6 \
             libqt6multimedia6 libqt6multimediawidgets6 \
-            libqt6texttospeech6 || true
+            libqt6texttospeech6 libqt6core5compat6 || true
 
       - name: Build
         run: |
@@ -83,7 +84,8 @@ jobs:
         run: |
           cmake -S . -B build_dir -G Ninja \
             -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_OSX_DEPLOYMENT_TARGET="12.0"
+            -DCMAKE_OSX_DEPLOYMENT_TARGET="12.0" \
+            -DWITH_FFMPEG_PLAYER=OFF
           cmake --build build_dir
 
       - name: Package
