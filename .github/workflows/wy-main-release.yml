@@ -20,25 +20,29 @@ jobs:
         with:
           submodules: true
 
-      - name: Install dependencies
+      - name: Install system dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y --fix-missing \
             build-essential ninja-build ccache \
             libvorbis-dev zlib1g-dev libhunspell-dev x11proto-record-dev \
             libxtst-dev liblzo2-dev libbz2-dev \
-            libavutil-dev libavformat-dev libeb16-dev \
-            libzstd-dev libxkbcommon-dev \
+            libavcodec-dev libavformat-dev libavutil-dev libswresample-dev \
+            libeb16-dev libzstd-dev libxkbcommon-dev \
             libxapian-dev libzim-dev libopencc-dev libfmt-dev \
-            libtomlplusplus-dev \
-            qt6-5compat-dev qt6-base-dev qt6-multimedia-dev \
-            qt6-speech-dev qt6-svg-dev qt6-tools-dev qt6-tools-dev-tools \
-            qt6-webchannel-dev qt6-webengine-dev
+            libtomlplusplus-dev
+
+      - uses: jurplel/install-qt-action@v4
+        with:
+          version: "6.10.3"
+          arch: linux_gcc_64
+          modules: qtwebengine qtwebchannel qtpositioning qt5compat qtmultimedia qtimageformats qtspeech
 
       - name: Build
         run: |
           cmake -S . -B build_dir -G Ninja \
-            -DCMAKE_BUILD_TYPE=Release
+            -DCMAKE_BUILD_TYPE=Release \
+            -DWITH_FFMPEG_PLAYER=ON
           cmake --build build_dir
 
       - uses: actions/upload-artifact@v7
@@ -51,7 +55,7 @@ jobs:
     strategy:
       matrix:
         os: [macos-14]
-        qt_ver: ["6.8.3"]
+        qt_ver: ["6.10.3"]
     steps:
       - uses: actions/checkout@v6
         with:
@@ -95,7 +99,7 @@ jobs:
     runs-on: windows-2022
     strategy:
       matrix:
-        qt_ver: ["6.8.3"]
+        qt_ver: ["6.10.3"]
         arch: [win64_msvc2022_64]
         include:
           - arch: win64_msvc2022_64
