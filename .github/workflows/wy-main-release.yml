@@ -1,4 +1,4 @@
-name: WY Patches Release
+name: WY Main Release
 
 on:
   push:
