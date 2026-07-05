@@ -244,4 +244,4 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh release upload '${{ env.newTag }}' --repo ${{ github.repository }} --clobber \
-            *.exe *.7z *.dmg goldendict
+            *.exe *.7z *.dmg
