@@ -47,9 +47,11 @@ jobs:
           cmake --build build_dir
 
       - uses: actions/upload-artifact@v7
+        if: ${{ !cancelled() }}
         with:
           name: linux
           path: build_dir/goldendict
+          if-no-files-found: warn
 
   build-macOS:
     permissions:
@@ -130,9 +132,10 @@ jobs:
           cmake --install build_dir/
 
       - uses: actions/upload-artifact@v7
+        if: ${{ !cancelled() }}
         with:
           name: macOS-${{ matrix.os }}-Qt${{ matrix.qt_ver }}
-          if-no-files-found: error
+          if-no-files-found: warn
           retention-days: 7
           archive: false
           path: '*.dmg'
@@ -180,21 +183,30 @@ jobs:
           cpack --verbose
 
       - uses: actions/upload-artifact@v7
+        if: ${{ !cancelled() }}
         with:
-          name: Windows-${{ matrix.arch }}-Qt${{ matrix.qt_ver }}
-          if-no-files-found: error
+          name: Windows-${{ matrix.arch }}-Qt${{ matrix.qt_ver }}-installer
+          if-no-files-found: warn
           retention-days: 7
-          path: |
-            ./build_dir/*.exe
-            ./build_dir/*.7z
+          path: ./build_dir/*.exe
+
+      - uses: actions/upload-artifact@v7
+        if: ${{ !cancelled() }}
+        with:
+          name: Windows-${{ matrix.arch }}-Qt${{ matrix.qt_ver }}-portable
+          if-no-files-found: warn
+          retention-days: 7
+          path: ./build_dir/*.7z
 
   release:
     needs: [build-linux, build-macOS, build-Windows]
+    if: ${{ !cancelled() }}
     permissions:
       contents: write
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/download-artifact@v8
+        continue-on-error: true
         with:
           merge-multiple: true
 
@@ -224,5 +236,10 @@ jobs:
         run: |
           SHA_SHORT=$(git rev-parse --short=10 HEAD)
           TAG="v${{ env.version }}-alpha.$SHA_SHORT"
-          gh release upload "$TAG" --repo ${{ github.repository }} --clobber \
-            *.exe *.7z *.dmg goldendict
+          shopt -s nullglob
+          FILES=(build_dir/*.exe build_dir/*.7z build_dir/goldendict *.dmg)
+          if [ ${#FILES[@]} -gt 0 ]; then
+            gh release upload "$TAG" --repo ${{ github.repository }} --clobber "${FILES[@]}"
+          else
+            echo "No artifacts to upload"
+          fi
