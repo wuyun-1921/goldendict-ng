@@ -22,7 +22,6 @@
 #include "dictionarybar.hh"
 #include "history.hh"
 #include "mainstatusbar.hh"
-#include "mruqmenu.hh"
 #include "translatebox.hh"
 #include "dictheadwords.hh"
 #include "fulltextsearch.hh"
@@ -51,6 +50,24 @@ public:
 
   /// Set group for main/popup window
   void setGroupByName( const QString & name, bool main_window );
+
+  // Side-by-side panels
+  void addPanel( ArticleView * av, int targetPanelIdx = -1 );
+  void removePanel( ArticleView * av );
+  void showTabContextMenu( QTabWidget * panel, int tabIdx, QPoint globalPos );
+  QString formatTabTitle( ArticleView * av, const QString & baseTitle );
+  void updateTabTitleMarker( ArticleView * av );
+  QTabWidget * panelForView( ArticleView * av );
+  QTabWidget * activePanel();
+  void closeTabInPanel( QTabWidget * panel, int tabIndex );
+  QTabWidget * createPanel();
+  QTabWidget * findOrCreateSidePanel();
+  QTabWidget * createNewSidePanel();
+  void togglePanel();
+  void togglePanelOrientation();
+  int totalTabCount() const;
+  int panelCount() const;
+  void distributePanelSizes();
 
   enum class WildcardPolicy {
     EscapeWildcards,
@@ -117,13 +134,15 @@ private:
 
   QAction escAction, focusTranslateLineAction, addTabAction, closeCurrentTabAction, closeAllTabAction,
     closeRestTabAction, switchToNextTabAction, switchToPrevTabAction, showDictBarNamesAction, toggleMenuBarAction,
-    lockPanelsAction, focusHeadwordsDlgAction, focusArticleViewAction, addAllTabToFavoritesAction;
+    lockPanelsAction, focusHeadwordsDlgAction, focusArticleViewAction, addAllTabToFavoritesAction, togglePanelAction,
+    togglePanelOrientationAction;
 
   QAction useSmallIconsInToolbarsAction, useLargeIconsInToolbarsAction, useNormalIconsInToolbarsAction;
 
   QActionGroup * smallLargeIconGroup = new QActionGroup( this );
 
   QAction stopAudioAction;
+  QPointer< ArticleView > lastFocusedArticleView; // last ArticleView that had keyboard focus
   QToolBar * navToolbar;
   MainStatusBar * mainStatusBar;
   QAction *navBack, *navForward, *navPronounce, *enableScanningAction;
@@ -134,13 +153,11 @@ private:
 #ifdef Q_OS_MACOS
   QMenu dockMenu; // Separate menu for macOS Dock
 #endif
-  QMenu * tabMenu;
   QAction * menuButtonAction;
   QToolButton * menuButton;
-  MRUQMenu * tabListMenu;
+  QToolButton * tabListButton = nullptr; // main panel's tab list button (for Ctrl+Tab)
   //List that contains indexes of tabs arranged in a most-recently-used order
   QList< QWidget * > mruList;
-  QToolButton addTab, *tabListButton;
   Config::Class & cfg;
   History history;
   DictionaryBar dictionaryBar;
@@ -330,6 +347,8 @@ private slots:
 
   // Executed in response to a user click on an 'add tab' tool button
   void addNewTab();
+  // Creates a new tab in a specific panel
+  void addNewTabToPanel( QTabWidget * panel );
   // Executed in response to a user click on an 'close' button on a tab
   void tabCloseRequested( int );
   // Closes current tab.
@@ -339,10 +358,7 @@ private slots:
   void switchToNextTab();
   void switchToPrevTab();
 
-  // Handling of active tab list
-  void createTabList();
   void fillWindowsMenu();
-  void switchToWindow( QAction * act );
 
   /// Triggered by the actions in the nav toolbar
   void backClicked();
@@ -355,7 +371,6 @@ private slots:
 
   void pageLoaded( ArticleView * );
   void tabSwitched( int );
-  void tabMenuRequested( QPoint pos );
 
   void dictionaryBarToggled( bool checked );
 
@@ -393,6 +408,9 @@ private slots:
 
   void showDictsPane();
   void dictsPaneVisibilityChanged( bool );
+
+  /// Shared ArticleView construction + signal wiring for createNewTab / addNewTabToPanel
+  ArticleView * createArticleView();
 
   /// Creates a new tab, which is to be populated then with some content.
   ArticleView * createNewTab( bool switchToIt, const QString & name );
