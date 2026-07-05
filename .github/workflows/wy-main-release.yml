@@ -1,16 +1,17 @@
 name: WY Main Release
 
-on:
-  push:
-    branches: [wy-main]
-  workflow_dispatch:
-
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - wy-main
 
 jobs:
   build-linux:
@@ -50,7 +51,9 @@ jobs:
           name: linux
           path: build_dir/goldendict
 
-  build-macos:
+  build-macOS:
+    permissions:
+      contents: read
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -67,8 +70,41 @@ jobs:
           HOMEBREW_NO_INSTALL_CLEANUP: 1
         run: |
           brew install --force --overwrite \
-            bzip2 create-dmg hunspell libiconv libogg libvorbis \
-            libzim lzip ccache opencc fmt ffmpeg@6 tomlplusplus xapian || true
+            bzip2 \
+            create-dmg \
+            hunspell \
+            libiconv \
+            libogg \
+            libvorbis \
+            libzim \
+            lzip \
+            ccache \
+            opencc \
+            fmt \
+            ffmpeg@6 \
+            tomlplusplus \
+            xapian || true
+
+      - name: ccache
+        uses: hendrikmuhs/ccache-action@v1.2
+        with:
+          key: ${{ runner.os }}-${{ runner.arch }}-${{ matrix.qt_ver }}
+
+      - name: Cache EB
+        id: cache-eb
+        uses: actions/cache@v4
+        with:
+          path: |
+            /usr/local/lib/libeb*
+            /usr/local/include/eb
+            /usr/local/bin/eb*
+          key: ${{ runner.os }}-${{ runner.arch }}-eb-custom
+
+      - name: Install EB
+        if: steps.cache-eb.outputs.cache-hit != 'true'
+        run: |
+          git clone --depth 1 https://github.com/xiaoyifang/eb.git
+          cd eb && ./configure && make -j$(sysctl -n hw.ncpu) && sudo make install && cd ..
 
       - uses: jurplel/install-qt-action@v4
         with:
@@ -79,28 +115,31 @@ jobs:
       - name: Build
         run: |
           mkdir build_dir
-          if brew --prefix ffmpeg@6 &>/dev/null; then
-            export PKG_CONFIG_PATH="$(brew --prefix ffmpeg@6)/lib/pkgconfig:$PKG_CONFIG_PATH"
-            FFMPEG_FLAG="-DWITH_FFMPEG_PLAYER=ON"
-          else
-            FFMPEG_FLAG="-DWITH_FFMPEG_PLAYER=OFF"
-          fi
+          export PKG_CONFIG_PATH="`brew --prefix ffmpeg@6`/lib/pkgconfig:$PKG_CONFIG_PATH"
           cmake -S . -B build_dir -G Ninja \
-            $FFMPEG_FLAG \
+            -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+            -DWITH_FFMPEG_PLAYER=ON \
             -DWITH_QT_MULTIMEDIA=OFF \
-            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_BUILD_TYPE=RelWithDebInfo \
             -DCMAKE_OSX_DEPLOYMENT_TARGET="12.0"
           cmake --build build_dir
 
       - name: Package
-        run: cmake --install build_dir/
+        run: |
+          cmake --install build_dir/
 
       - uses: actions/upload-artifact@v7
         with:
-          name: macos-${{ matrix.os }}-Qt${{ matrix.qt_ver }}
+          name: macOS-${{ matrix.os }}-Qt${{ matrix.qt_ver }}
+          if-no-files-found: error
+          retention-days: 7
+          archive: false
           path: '*.dmg'
 
-  build-windows:
+  build-Windows:
+    permissions:
+      contents: read
     runs-on: windows-2022
     strategy:
       matrix:
@@ -126,6 +165,7 @@ jobs:
           arch: ${{ matrix.vs_arch }}
 
       - name: Build
+        id: build
         run: |
           New-Item -Path './build_dir' -ItemType Directory
           cmake -S . -B "./build_dir" -G Ninja `
@@ -141,16 +181,18 @@ jobs:
 
       - uses: actions/upload-artifact@v7
         with:
-          name: windows-${{ matrix.arch }}-Qt${{ matrix.qt_ver }}
+          name: Windows-${{ matrix.arch }}-Qt${{ matrix.qt_ver }}
+          if-no-files-found: error
+          retention-days: 7
           path: |
             ./build_dir/*.exe
             ./build_dir/*.7z
 
   release:
-    needs: [build-linux, build-macos, build-windows]
-    runs-on: ubuntu-24.04
+    needs: [build-linux, build-macOS, build-Windows]
     permissions:
       contents: write
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/download-artifact@v8
         with:
