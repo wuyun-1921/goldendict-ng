@@ -5,7 +5,6 @@
 
 #include <QTabWidget>
 #include <QTabBar>
-#include <QContextMenuEvent>
 
 /// An extension of QTabWidget that allows to better control
 /// the tabbar visibility.
@@ -23,9 +22,6 @@ public:
     return hideSingleTab;
   }
   void setHideSingleTab( bool hide );
-
-signals:
-  void moveTabToPanelRequested( int index );
 
 private:
   virtual void tabInserted( int index );

@@ -3,8 +3,6 @@
 
 #include "maintabwidget.hh"
 #include <QMouseEvent>
-#include <QMenu>
-#include <QContextMenuEvent>
 
 MainTabWidget::MainTabWidget( QWidget * parent ):
   QTabWidget( parent )
