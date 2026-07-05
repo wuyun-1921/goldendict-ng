@@ -79,9 +79,14 @@ jobs:
       - name: Build
         run: |
           mkdir build_dir
-          export PKG_CONFIG_PATH="`brew --prefix ffmpeg@6`/lib/pkgconfig:$PKG_CONFIG_PATH"
+          if brew --prefix ffmpeg@6 &>/dev/null; then
+            export PKG_CONFIG_PATH="$(brew --prefix ffmpeg@6)/lib/pkgconfig:$PKG_CONFIG_PATH"
+            FFMPEG_FLAG="-DWITH_FFMPEG_PLAYER=ON"
+          else
+            FFMPEG_FLAG="-DWITH_FFMPEG_PLAYER=OFF"
+          fi
           cmake -S . -B build_dir -G Ninja \
-            -DWITH_FFMPEG_PLAYER=ON \
+            $FFMPEG_FLAG \
             -DWITH_QT_MULTIMEDIA=OFF \
             -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_OSX_DEPLOYMENT_TARGET="12.0"
