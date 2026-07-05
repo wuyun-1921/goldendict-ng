@@ -23,21 +23,17 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y \
-            build-essential cmake ninja-build \
-            libbz2-dev liblzma-dev libhunspell-dev \
-            libvorbis-dev libogg-dev \
-            libx11-dev libxtst-dev \
-            libopencc-dev libfmt-dev libtomlplusplus-dev \
-            libxapian-dev libzim-dev libeb-dev \
-            qt6-base-dev qt6-webengine-dev qt6-webchannel-dev \
-            qt6-positioning-dev qt6-multimedia-dev qt6-speech-dev \
-            qt6-tools-dev qt6-image-formats-plugins \
-            qt6-core5compat-dev \
-            libqt6webenginecore6 libqt6webenginewidgets6 \
-            libqt6webchannel6 libqt6positioning6 \
-            libqt6multimedia6 libqt6multimediawidgets6 \
-            libqt6texttospeech6 libqt6core5compat6 || true
+          sudo apt-get install -y --fix-missing \
+            build-essential ninja-build ccache \
+            libvorbis-dev zlib1g-dev libhunspell-dev x11proto-record-dev \
+            libxtst-dev liblzo2-dev libbz2-dev \
+            libavutil-dev libavformat-dev libeb16-dev \
+            libzstd-dev libxkbcommon-dev \
+            libxapian-dev libzim-dev libopencc-dev libfmt-dev \
+            libtomlplusplus-dev \
+            qt6-5compat-dev qt6-base-dev qt6-multimedia-dev \
+            qt6-speech-dev qt6-svg-dev qt6-tools-dev qt6-tools-dev-tools \
+            qt6-webchannel-dev qt6-webengine-dev
 
       - name: Build
         run: |
