@@ -41,6 +41,8 @@
 | Ctrl+Shift+A          | Select current article only                                                                                                      |
 | Ctrl+Shift+C          | Copy selected as text                                                                                                            |
 | Ctrl+Shift+F          | Open/switch to full-text search dialog                                                                                           |
+| Ctrl+Shift+H          | Toggle panel orientation (horizontal/vertical)                                                                                 |
+| Ctrl+Shift+P          | Toggle panel — move current tab between main view and side panel                                                               |
 | Ctrl+Shift+W          | Close all tabs                                                                                                                   |
 | Ctrl+Shift+S          | Stop current playing sound                                                                                                       |
 | Del                   | (History) delete select line                                                                                                     |
