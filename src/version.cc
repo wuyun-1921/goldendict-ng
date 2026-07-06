@@ -70,9 +70,9 @@ QString getReleaseUrl()
 {
   QString tag = getVersionTag();
   if ( tag.isEmpty() ) {
-    return QStringLiteral( "https://github.com/wuyun-1921/goldendict-wy/releases" );
+    return QStringLiteral( "https://github.com/wuyun-1921/goldendict-ng/releases" );
   }
-  return QStringLiteral( "https://github.com/wuyun-1921/goldendict-wy/releases/tag/%1" ).arg( tag );
+  return QStringLiteral( "https://github.com/wuyun-1921/goldendict-ng/releases/tag/%1" ).arg( tag );
 }
 
 } // namespace Version

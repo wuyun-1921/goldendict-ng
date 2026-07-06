@@ -51,7 +51,7 @@ jobs:
           echo "pkgname = goldendict-wy" > "$PKG/.PKGINFO"
           echo "pkgver = $VER-1" >> "$PKG/.PKGINFO"
           echo "pkgdesc = GoldenDict fork with multi-panel, always-query, session restore" >> "$PKG/.PKGINFO"
-          echo "url = https://github.com/wuyun-1921/goldendict-wy" >> "$PKG/.PKGINFO"
+          echo "url = https://github.com/wuyun-1921/goldendict-ng" >> "$PKG/.PKGINFO"
           echo "arch = x86_64" >> "$PKG/.PKGINFO"
           cd "$PKG"
           tar --zstd -cf "../$PKG.pkg.tar.zst" .PKGINFO usr

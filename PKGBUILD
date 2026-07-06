@@ -6,7 +6,7 @@ pkgver=26.7.0.r50.$(git rev-parse --short=10 HEAD 2>/dev/null || echo "unknown")
 pkgrel=1
 pkgdesc="GoldenDict fork with multi-panel, always-query, session restore and more (Supports Qt WebEngine & Qt6)"
 arch=('x86_64' 'aarch64')
-url="https://github.com/wuyun-1921/goldendict-wy"
+url="https://github.com/wuyun-1921/goldendict-ng"
 license=('GPL3')
 depends=(
 	hunspell
@@ -36,7 +36,7 @@ makedepends=(
 )
 conflicts=('goldendict-ng-git')
 provides=('goldendict')
-source=("$pkgname::git+https://github.com/wuyun-1921/goldendict-wy.git")
+source=("$pkgname::git+https://github.com/wuyun-1921/goldendict-ng.git")
 md5sums=('SKIP')
 
 pkgver() {
