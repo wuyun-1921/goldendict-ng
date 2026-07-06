@@ -203,3 +203,62 @@ if (
 } else {
   document.addEventListener("DOMContentLoaded", gdAttachEventHandlers);
 }
+
+// Split-scroll zone: left half scrolls page, right half scrolls article
+(function() {
+  var splitPercent = 50;
+
+  function setupScrollZones() {
+    document.addEventListener('wheel', function(e) {
+      var article = (document.elementFromPoint(e.clientX, e.clientY) || e.target).closest('.gdarticlebody');
+      if (!article) return;
+
+      var rect = article.getBoundingClientRect();
+      var relX = (e.clientX - rect.left) / rect.width; // 0..1 relative position
+
+      // Middle 50%: scroll inside article. Outer 25% each side: scroll page.
+      if (relX >= 0.25 && relX <= 0.75) {
+      // Middle zone: try article scroll first, fall back to page scroll at edges
+      const atTop    = article.scrollTop <= 0 && e.deltaY < 0;
+      const atBottom = article.scrollTop + article.clientHeight >= article.scrollHeight - 1 && e.deltaY > 0;
+      if ( atTop || atBottom )
+        return; // let browser scroll the page
+      e.preventDefault();
+      article.scrollTop += e.deltaY;
+      return;
+      }
+      // Peripheral zone: scroll the outer page, fall back to article when page is at edge
+      e.preventDefault();
+      var scrollEl = document.scrollingElement || document.documentElement;
+      var pageAtTop    = scrollEl.scrollTop <= 0 && e.deltaY < 0;
+      var pageAtBottom = scrollEl.scrollTop + scrollEl.clientHeight >= scrollEl.scrollHeight - 1 && e.deltaY > 0;
+      if ( pageAtTop || pageAtBottom ) {
+        // Page fully displayed — scroll article instead, with edge fallback
+        const atTop    = article.scrollTop <= 0 && e.deltaY < 0;
+        const atBottom = article.scrollTop + article.clientHeight >= article.scrollHeight - 1 && e.deltaY > 0;
+        if ( atTop || atBottom )
+          return;
+        article.scrollTop += e.deltaY;
+      } else {
+        scrollEl.scrollTop += e.deltaY;
+      }
+    }, { passive: false });
+  }
+
+  // Listen for C++ signal
+  try {
+    if (typeof articleview !== 'undefined'
+        && typeof articleview.scrollZoneSplitChanged !== 'undefined') {
+      articleview.scrollZoneSplitChanged.connect(function(pct) {
+        splitPercent = pct;
+      });
+    }
+  } catch(e) {}
+
+  // Set up when DOM is ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', setupScrollZones);
+  } else {
+    setupScrollZones();
+  }
+})();
