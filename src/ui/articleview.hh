@@ -246,6 +246,9 @@ public:
     }
   }
 
+  /// Per-tab collapsed dictionary IDs — persisted across session save/restore
+  QSet< QString > collapsedDicts;
+
   /// Returns whether this view is for website browsing
   bool isWebsite() const
   {

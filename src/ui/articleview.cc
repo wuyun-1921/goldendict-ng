@@ -2543,10 +2543,10 @@ void ArticleViewAgent::collapseInHtml( const QString & dictId, bool on ) const
 {
   if ( GlobalBroadcaster::instance()->getPreference()->sessionCollapse ) {
     if ( on ) {
-      GlobalBroadcaster::instance()->collapsedDicts.insert( dictId );
+      articleView->collapsedDicts.insert( dictId );
     }
     else {
-      GlobalBroadcaster::instance()->collapsedDicts.remove( dictId );
+      articleView->collapsedDicts.remove( dictId );
     }
   }
 }

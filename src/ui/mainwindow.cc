@@ -3777,6 +3777,8 @@ void MainWindow::showTranslationFor( const QString & word, unsigned inGroup, con
 
   view->showDefinition( word, group, scrollTo );
 
+  // Forward query to all Always Query tabs
+  forwardToAlwaysQueryTabs( view, word, group, scrollTo );
 }
 
 void MainWindow::showTranslationForDicts( const QString & inWord,
