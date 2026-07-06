@@ -10,8 +10,8 @@ env:
 on:
   workflow_dispatch:
   push:
-    branches:
-      - wy-main
+    tags:
+      - 'v*'
 
 jobs:
   build-linux:
@@ -204,12 +204,10 @@ jobs:
       newTag: ${{ steps.tag.outputs.newTag }}
     steps:
       - uses: actions/checkout@v6
-      - name: Compute tag
+      - name: Use pushed tag
         id: tag
         run: |
-          VERSION=$(xargs < VERSION)
-          SHA_SHORT=$(git rev-parse --short=10 HEAD)
-          echo "newTag=v${VERSION}-alpha.${SHA_SHORT}" >> $GITHUB_OUTPUT
+          echo "newTag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
 
   release:
     needs: [build-linux, build-macOS, build-Windows, setup]
@@ -235,8 +233,7 @@ jobs:
           gh release create '${{ env.newTag }}' \
             -t "Goldendict-ng WY fork ${{ env.newTag }}" \
             --target wy-main \
-            --prerelease \
-            --latest=false \
+            --latest \
             --repo ${{ github.repository }}
 
       - name: Upload artifacts
