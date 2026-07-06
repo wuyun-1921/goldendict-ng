@@ -3917,15 +3917,22 @@ void MainWindow::jumpToDictionary( QListWidgetItem * item, bool force )
   // If openWebsiteInNewTab is configured, try to find existing tab first
   if ( GlobalBroadcaster::instance()->getPreference()->openWebsiteInNewTab ) {
     if ( ArticleView * view = findArticleViewByDictId( dictId ) ) {
-      // Switch to the found tab
-      ui.tabWidget->setCurrentWidget( view );
+      if ( auto * panel = panelForView( view ) )
+        panel->setCurrentWidget( view );
+      else
+        ui.tabWidget->setCurrentWidget( view );
       return;
     }
   }
 
-  if ( ArticleView * view = getFirstNonWebSiteArticleView() ) {
-    // Switch to the found tab
-    ui.tabWidget->setCurrentWidget( view );
+  ArticleView * view = getCurrentArticleView();
+  if ( !view || view->isWebsite() )
+    view = getFirstNonWebSiteArticleView();
+  if ( view ) {
+    if ( auto * panel = panelForView( view ) )
+      panel->setCurrentWidget( view );
+    else
+      ui.tabWidget->setCurrentWidget( view );
     view->jumpToDictionary( dictId, force );
   }
 }
