@@ -57,6 +57,8 @@ public:
   void showTabContextMenu( QTabWidget * panel, int tabIdx, QPoint globalPos );
   QString formatTabTitle( ArticleView * av, const QString & baseTitle );
   void updateTabTitleMarker( ArticleView * av );
+  void applyTabColors();
+  void forwardToAlwaysQueryTabs( ArticleView * source, const QString & word, unsigned group, const QString & scrollTo );
   QTabWidget * panelForView( ArticleView * av );
   QTabWidget * activePanel();
   void closeTabInPanel( QTabWidget * panel, int tabIndex );
@@ -135,13 +137,15 @@ private:
   QAction escAction, focusTranslateLineAction, addTabAction, closeCurrentTabAction, closeAllTabAction,
     closeRestTabAction, switchToNextTabAction, switchToPrevTabAction, showDictBarNamesAction, toggleMenuBarAction,
     lockPanelsAction, focusHeadwordsDlgAction, focusArticleViewAction, addAllTabToFavoritesAction, togglePanelAction,
-    togglePanelOrientationAction;
+    togglePanelOrientationAction, toggleAlwaysQueryAction;
 
   QAction useSmallIconsInToolbarsAction, useLargeIconsInToolbarsAction, useNormalIconsInToolbarsAction;
 
   QActionGroup * smallLargeIconGroup = new QActionGroup( this );
 
   QAction stopAudioAction;
+
+  QAction * alwaysQueryMainAction = nullptr;
   QPointer< ArticleView > lastFocusedArticleView; // last ArticleView that had keyboard focus
   QToolBar * navToolbar;
   MainStatusBar * mainStatusBar;

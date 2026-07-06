@@ -528,6 +528,17 @@ MainWindow::MainWindow( Config::Class & cfg_ ):
   } );
   togglePanelOrientationAction.setShortcut( QKeySequence( "Ctrl+Shift+H" ) );
 
+  // Always Query toggle
+  toggleAlwaysQueryAction.setText( tr( "Toggle Always Query" ) );
+  addGlobalAction( &toggleAlwaysQueryAction, [ this ]() {
+    auto * view = getCurrentArticleView();
+    if ( view && !view->isWebsite() ) {
+      view->setAlwaysQuery( !view->alwaysQuery() );
+      updateTabTitleMarker( view );
+    }
+  } );
+  toggleAlwaysQueryAction.setShortcut( QKeySequence( "Ctrl+Shift+E" ) );
+
   closeCurrentTabAction.setShortcutContext( Qt::WidgetWithChildrenShortcut );
   closeCurrentTabAction.setShortcut( QKeySequence( "Ctrl+W" ) );
   closeCurrentTabAction.setText( tr( "Close current tab" ) );
@@ -1596,17 +1607,63 @@ void MainWindow::updateTabTitleMarker( ArticleView * av )
 {
   if ( !av )
     return;
-  // Clear tab text color on all panels
-  auto clearColor = [ av ]( QTabWidget * panel ) {
-    int idx = panel->indexOf( av );
-    if ( idx >= 0 )
+  applyTabColors();
+}
+
+void MainWindow::applyTabColors()
+{
+  auto decorateTab = [ & ]( QTabWidget * panel, int idx ) {
+    auto * av = qobject_cast< ArticleView * >( panel->widget( idx ) );
+    if ( !av )
+      return;
+
+    // Strip existing [A] marker, then re-add if alwaysQuery
+    QString title = panel->tabText( idx );
+    if ( title.endsWith( QLatin1String( " [A]" ) ) )
+      title.chop( 4 );
+    if ( av->alwaysQuery() )
+      title += QStringLiteral( " [A]" );
+    panel->setTabText( idx, title );
+
+    // Dim always-query tabs, clear color for normal tabs
+    if ( av->alwaysQuery() )
+      panel->tabBar()->setTabTextColor( idx, QColor( 85, 85, 85 ) );
+    else
       panel->tabBar()->setTabTextColor( idx, QColor() );
   };
-  clearColor( ui.tabWidget );
+
+  for ( int i = 0; i < ui.tabWidget->count(); i++ )
+    decorateTab( ui.tabWidget, i );
+
+  for ( int p = 1; p < ui.panelSplitter->count(); p++ ) {
+    auto * panel = qobject_cast< QTabWidget * >( ui.panelSplitter->widget( p ) );
+    if ( panel ) {
+      for ( int i = 0; i < panel->count(); i++ )
+        decorateTab( panel, i );
+    }
+  }
+}
+
+void MainWindow::forwardToAlwaysQueryTabs( ArticleView * source,
+                                           const QString & word,
+                                           unsigned /*group*/,
+                                           const QString & scrollTo )
+{
+  auto forwardTo = [ & ]( QTabWidget * panel ) {
+    for ( int i = 0; i < panel->count(); i++ ) {
+      auto * av = qobject_cast< ArticleView * >( panel->widget( i ) );
+      if ( !av || av == source || !av->alwaysQuery() || av->isWebsite() )
+        continue;
+      unsigned groupId = av->getCurrentGroupId();
+      av->showDefinition( word, groupId, scrollTo );
+    }
+  };
+
+  forwardTo( ui.tabWidget );
   for ( int p = 1; p < ui.panelSplitter->count(); p++ ) {
     auto * panel = qobject_cast< QTabWidget * >( ui.panelSplitter->widget( p ) );
     if ( panel )
-      clearColor( panel );
+      forwardTo( panel );
   }
 }
 
@@ -1693,6 +1750,18 @@ void MainWindow::showTabContextMenu( QTabWidget * panel, int tabIdx, QPoint glob
 
   auto * av = qobject_cast< ArticleView * >( panel->widget( tabIdx ) );
   if ( av ) {
+
+    // Always Query toggle — not applicable for website tabs
+    if ( !av->isWebsite() ) {
+      QAction * aqAction = menu.addAction( tr( "Always Query This Tab" ) );
+      aqAction->setCheckable( true );
+      aqAction->setChecked( av->alwaysQuery() );
+      connect( aqAction, &QAction::toggled, this, [ this, av ]( bool checked ) {
+        av->setAlwaysQuery( checked );
+        updateTabTitleMarker( av );
+      } );
+      menu.addSeparator();
+    }
 
     // Add to Favorites (blue star if already favorited)
     QString headword          = av->getCurrentWord();
@@ -2514,6 +2583,7 @@ ArticleView * MainWindow::createArticleView()
   connect( view, &ArticleView::zoomOut, this, &MainWindow::zoomout );
   connect( view, &ArticleView::saveBookmarkSignal, this, &MainWindow::addBookmarkToFavorite );
   connect( view, &ArticleView::translateSelectedText, this, &MainWindow::handleTranslateSelectedText );
+  connect( view, &ArticleView::wordLookedUp, this, &MainWindow::forwardToAlwaysQueryTabs );
 
   view->setSelectionBySingleClick( cfg.preferences.selectWordBySingleClick );
   view->setZoomFactor( cfg.preferences.zoomFactor );
@@ -2753,6 +2823,8 @@ void MainWindow::tabSwitched( int )
     groupList->setCurrentGroup( view->getCurrentGroupId() );
     groupList->blockSignals( false );
   }
+
+  applyTabColors();
 }
 
 void MainWindow::dictionaryBarToggled( bool )
