@@ -258,10 +258,6 @@ Preferences::Preferences( QWidget * parent, Config::Class & cfg_ ):
 
   ui.dictPanelEnabled->setChecked( p.dictPanelEnabled );
   ui.dictPanelMaxHeight->setValue( p.dictPanelMaxHeight );
-  int unitIdx = ui.dictPanelHeightUnit->findText( p.dictPanelHeightUnit );
-  if ( unitIdx >= 0 )
-    ui.dictPanelHeightUnit->setCurrentIndex( unitIdx );
-  ui.dictPanelHeightUnit->setEnabled( false );
   ui.dictPanelScrollZone->setValue( p.dictPanelScrollZone );
   ui.reverseScrollZone->setChecked( p.reverseScrollZone );
 
@@ -551,7 +547,6 @@ Config::Preferences Preferences::getPreferences()
 
   p.dictPanelEnabled    = ui.dictPanelEnabled->isChecked();
   p.dictPanelMaxHeight  = ui.dictPanelMaxHeight->value();
-  p.dictPanelHeightUnit = ui.dictPanelHeightUnit->currentText();
   p.dictPanelScrollZone = ui.dictPanelScrollZone->value();
   p.reverseScrollZone   = ui.reverseScrollZone->isChecked();
 

@@ -1897,7 +1897,7 @@ from mouse-over, selection, clipboard or command line</string>
             <item>
              <widget class="QLabel" name="dictPanelHeightLabel">
               <property name="text">
-               <string>Max height:</string>
+               <string>Max height (px):</string>
               </property>
              </widget>
             </item>
@@ -1909,15 +1909,6 @@ from mouse-over, selection, clipboard or command line</string>
               <property name="maximum">
                <number>2000</number>
               </property>
-             </widget>
-            </item>
-            <item>
-             <widget class="QComboBox" name="dictPanelHeightUnit">
-              <item>
-               <property name="text">
-                <string>px</string>
-               </property>
-              </item>
              </widget>
             </item>
            </layout>
