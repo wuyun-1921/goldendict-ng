@@ -32,37 +32,26 @@ jobs:
         with:
           submodules: true
 
-      - name: Build libeb from source (AUR-only dep)
+      - name: Build libeb from source (AUR recipe)
         run: |
-          git clone --depth 1 https://github.com/xiaoyifang/eb.git /tmp/eb
-          cd /tmp/eb
-          rm -f libebutils/getopt.c libebutils/getopt1.c libebutils/getopt.h
+          curl -L 'https://github.com/mistydemeo/eb/releases/download/v4.4.3/eb-4.4.3.tar.bz2' -o eb.tar.bz2
+          tar xf eb.tar.bz2 && cd eb-4.4.3
+          curl -L 'https://sources.debian.org/data/main/e/eb/4.4.3-14/debian/patches/010_debian.patch' -o debian.patch
+          patch -p1 --forward < debian.patch || true
           autoreconf -fi
-          ./configure --prefix=/usr --disable-nls
-          make -j$(nproc) && make install
+          ./configure --prefix=/usr --disable-static
+          make -j$(nproc) CFLAGS="-std=gnu17 -fpermissive"
+          make install
 
-      - name: Build
+      - name: Build with makepkg
         run: |
-          cmake -B build_dir -S . -G Ninja \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_INSTALL_PREFIX=/usr \
-            -DUSE_SYSTEM_FMT=ON \
-            -DUSE_SYSTEM_TOML=ON \
-            -DWITH_FFMPEG_PLAYER=OFF
-          cmake --build build_dir
-
-      - name: Create package
-        run: |
-          VER=$(cat VERSION)
-          PKG="goldendict-wy-$VER-1-x86_64"
-          DESTDIR="$PWD/$PKG" cmake --install build_dir
-          echo "pkgname = goldendict-wy" > "$PKG/.PKGINFO"
-          echo "pkgver = $VER-1" >> "$PKG/.PKGINFO"
-          echo "pkgdesc = GoldenDict fork with multi-panel, always-query, session restore" >> "$PKG/.PKGINFO"
-          echo "url = https://github.com/wuyun-1921/goldendict-ng" >> "$PKG/.PKGINFO"
-          echo "arch = x86_64" >> "$PKG/.PKGINFO"
-          cd "$PKG" && tar --zstd -cf "../$PKG.pkg.tar.zst" .PKGINFO usr
-          mv "../$PKG.pkg.tar.zst" "$GITHUB_WORKSPACE/"
+          cp PKGBUILD /tmp/
+          mkdir -p /tmp/src/goldendict-wy-git
+          cp -r . /tmp/src/goldendict-wy-git/
+          cd /tmp
+          chown -R builduser:builduser .
+          su builduser -c 'makepkg -ed --noconfirm --needed'
+          cp *.pkg.tar.zst "$GITHUB_WORKSPACE/"
 
       - uses: actions/upload-artifact@v7
         if: ${{ !cancelled() }}
