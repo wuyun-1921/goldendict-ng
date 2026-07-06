@@ -1004,6 +1004,16 @@ bool ArticleView::eventFilter( QObject * obj, QEvent * ev )
       auto keyEvent = static_cast< QKeyEvent * >( ev );
 
       if ( keyEvent->modifiers() & ( Qt::ControlModifier | Qt::AltModifier | Qt::MetaModifier ) ) {
+        // Route Ctrl+/- through MainWindow zoom so all panels zoom together
+        if ( keyEvent->modifiers() == Qt::ControlModifier
+             && ( keyEvent->key() == Qt::Key_Equal || keyEvent->key() == Qt::Key_Plus
+                  || keyEvent->key() == Qt::Key_Minus ) ) {
+          if ( keyEvent->key() == Qt::Key_Minus )
+            emit zoomOut();
+          else
+            emit zoomIn();
+          return true;
+        }
         return false; // A non-typing modifier is pressed
       }
 
