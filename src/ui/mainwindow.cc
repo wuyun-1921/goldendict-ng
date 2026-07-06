@@ -1099,6 +1099,8 @@ MainWindow::MainWindow( Config::Class & cfg_ ):
       unsigned grp_id     = av->getCurrentGroupId();
       cfg.lastMainGroupId = grp_id;
       dictionaryBar.updateToGroup( groupInstances.findGroup( grp_id ), &cfg.mutedDictionaries, cfg );
+      updateFoundInDictsList();
+      applyTabColors();
     }
   } );
 }
