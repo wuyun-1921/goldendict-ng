@@ -15,6 +15,7 @@ depends=(
 	lzo
 	zlib
 	xz
+	libeb
 	tomlplusplus
 	fmt
 	opencc
@@ -53,7 +54,6 @@ build() {
 		-DUSE_SYSTEM_FMT=ON \
 		-DUSE_SYSTEM_TOML=ON \
 		-DWITH_FFMPEG_PLAYER=OFF \
-		-DWITH_EPWING_SUPPORT=OFF \
 		-Wno-dev
 	cmake --build build_dir
 }
