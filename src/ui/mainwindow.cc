@@ -4699,9 +4699,18 @@ void MainWindow::adjustCurrentZoomFactor()
 
 void MainWindow::scaleArticlesByCurrentZoomFactor()
 {
-  for ( int i = 0; i < ui.tabWidget->count(); i++ ) {
-    auto & view = dynamic_cast< ArticleView & >( *( ui.tabWidget->widget( i ) ) );
-    view.setZoomFactor( cfg.preferences.zoomFactor );
+  auto scalePanel = [ this ]( QTabWidget * panel ) {
+    for ( int i = 0; i < panel->count(); i++ ) {
+      auto & view = dynamic_cast< ArticleView & >( *( panel->widget( i ) ) );
+      view.setZoomFactor( cfg.preferences.zoomFactor );
+    }
+  };
+
+  scalePanel( ui.tabWidget );
+  for ( int p = 1; p < ui.panelSplitter->count(); p++ ) {
+    auto * panel = qobject_cast< QTabWidget * >( ui.panelSplitter->widget( p ) );
+    if ( panel )
+      scalePanel( panel );
   }
 
   if ( scanPopup ) {

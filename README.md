@@ -1,5 +1,6 @@
 # GoldenDict-wy
-GoldenDict-wy is a [Goldendict-ng](https://xiaoyifang.github.io/goldendict-ng/developer/) fork with more features.
+
+A [goldendict-ng](https://xiaoyifang.github.io/goldendict-ng/developer/) fork with extra features.
 
 ## Features added on top of upstream
 
@@ -28,6 +29,3 @@ GoldenDict-wy is a [Goldendict-ng](https://xiaoyifang.github.io/goldendict-ng/de
 - Tabs, panels, layout, always-query flags, and collapsed dictionary state persist across restarts.
 - Lazy loading: inactive tabs defer content loading until first visit.
 - Configurable via "Restore session on startup" preference.
-
-### Other
-- Custom CI workflow for Linux release builds (Qt 6.10, ffmpeg, epwing).
