@@ -233,6 +233,12 @@ MainWindow::MainWindow( Config::Class & cfg_ ):
     }
   } );
 
+  // Persistent web storage: cookies, localStorage, IndexedDB
+  auto * profile = QWebEngineProfile::defaultProfile();
+  profile->setHttpCacheType( QWebEngineProfile::DiskHttpCache );
+  profile->setPersistentStoragePath( Config::getConfigDir() + "QtWebEngine" );
+  profile->setPersistentCookiesPolicy( QWebEngineProfile::AllowPersistentCookies );
+
   localSchemeHandler     = new LocalSchemeHandler( articleNetMgr, this );
   QStringList htmlScheme = { "gdlookup", "bword", "entry", "gdinternal" };
   for ( const auto & localScheme : htmlScheme ) {
