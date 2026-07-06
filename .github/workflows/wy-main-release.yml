@@ -45,6 +45,13 @@ jobs:
           chown -R build:build .
           su build -c 'makepkg -s --noconfirm --needed'
 
+      - name: Exclude debug package
+        if: ${{ !cancelled() }}
+        run: |
+          for f in *-debug-*.pkg.tar.zst; do
+            [ -f "$f" ] && rm -f "$f"
+          done
+
       - uses: actions/upload-artifact@v7
         if: ${{ !cancelled() }}
         with:
@@ -233,7 +240,7 @@ jobs:
 
       - name: Generate release notes
         run: |
-          LAST_TAG=$(git tag --sort=-v:refname --merged HEAD~1 'v*' 2>/dev/null | head -1)
+          LAST_TAG=$(git tag --sort=-creatordate 'v*' | grep -v -e 'chaos' -e 'vcpkg' -e '${{ env.newTag }}' | head -1)
           if [ -z "$LAST_TAG" ]; then
             NOTES="Initial release."
           else
@@ -260,4 +267,4 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh release upload '${{ env.newTag }}' --repo ${{ github.repository }} --clobber \
-            *.exe *.7z *.dmg
+            *.exe *.7z *.dmg *.pkg.tar.zst
