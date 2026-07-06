@@ -25,14 +25,19 @@ jobs:
           pacman -S --noconfirm --needed \
             git cmake ninja \
             hunspell libvorbis libxtst lzo zlib \
-            libeb tomlplusplus fmt opencc xapian-core libzim \
+            tomlplusplus fmt opencc xapian-core libzim \
             qt6-base qt6-svg qt6-multimedia qt6-webengine qt6-speech qt6-5compat qt6-tools
 
       - uses: actions/checkout@v6
         with:
           submodules: true
 
-      - name: Build
+      - name: Build libeb from source
+        run: |
+          git clone --depth 1 https://github.com/xiaoyifang/eb.git /tmp/eb
+          cd /tmp/eb && ./configure --prefix=/usr && make -j$(nproc) && make install
+
+      - name: Build goldendict
         run: |
           cmake -B build_dir -S . -G Ninja \
             -DCMAKE_BUILD_TYPE=Release \
