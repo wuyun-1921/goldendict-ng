@@ -29,12 +29,12 @@ jobs:
             tomlplusplus fmt opencc xapian-core libzim \
             qt6-base qt6-svg qt6-multimedia qt6-webengine qt6-speech qt6-5compat qt6-tools
 
-      - name: Install AUR dependencies
+      - name: Install libeb from archlinuxcn
         run: |
-          git clone https://aur.archlinux.org/libeb.git /tmp/libeb
-          cd /tmp/libeb
-          chown -R builduser:builduser .
-          su builduser -c 'makepkg -si --noconfirm --needed'
+          echo '[archlinuxcn]' >> /etc/pacman.conf
+          echo 'Server = https://repo.archlinuxcn.org/$arch' >> /etc/pacman.conf
+          pacman -Sy --noconfirm archlinuxcn-keyring 2>/dev/null || true
+          pacman -S --noconfirm libeb
 
       - name: Build goldendict with makepkg
         run: |
