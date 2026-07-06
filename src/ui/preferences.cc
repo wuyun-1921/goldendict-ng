@@ -1,7 +1,6 @@
 #include "keyboardstate.hh"
 #include "language.hh"
 #include "preferences.hh"
-#include "webprofile.hh"
 #include "help.hh"
 #include <QDir>
 #include <QFontDatabase>
@@ -107,7 +106,7 @@ Preferences::Preferences( QWidget * parent, Config::Class & cfg_ ):
   }
   else {
     ui.font_standard->setCurrentFont(
-      g_webProfile->settings()->fontFamily( QWebEngineSettings::StandardFont ) );
+      QWebEngineProfile::defaultProfile()->settings()->fontFamily( QWebEngineSettings::StandardFont ) );
   }
 
   if ( !p.customFonts.serif.isEmpty() ) {
@@ -115,7 +114,7 @@ Preferences::Preferences( QWidget * parent, Config::Class & cfg_ ):
   }
   else {
     ui.font_serif->setCurrentFont(
-      g_webProfile->settings()->fontFamily( QWebEngineSettings::SerifFont ) );
+      QWebEngineProfile::defaultProfile()->settings()->fontFamily( QWebEngineSettings::SerifFont ) );
   }
 
   if ( !p.customFonts.sansSerif.isEmpty() ) {
@@ -123,7 +122,7 @@ Preferences::Preferences( QWidget * parent, Config::Class & cfg_ ):
   }
   else {
     ui.font_sans->setCurrentFont(
-      g_webProfile->settings()->fontFamily( QWebEngineSettings::SansSerifFont ) );
+      QWebEngineProfile::defaultProfile()->settings()->fontFamily( QWebEngineSettings::SansSerifFont ) );
   }
 
   if ( !p.customFonts.monospace.isEmpty() ) {
@@ -131,7 +130,7 @@ Preferences::Preferences( QWidget * parent, Config::Class & cfg_ ):
   }
   else {
     ui.font_monospace->setCurrentFont(
-      g_webProfile->settings()->fontFamily( QWebEngineSettings::FixedFont ) );
+      QWebEngineProfile::defaultProfile()->settings()->fontFamily( QWebEngineSettings::FixedFont ) );
   }
 
   ui.fallbackFontsGroupBox->setChecked( p.useFallbackFonts );
@@ -677,19 +676,19 @@ void Preferences::on_buttonBox_accepted()
   }
 
   if ( !c.useFallbackFonts ) {
-    g_webProfile->settings()->resetFontFamily( QWebEngineSettings::StandardFont );
-    g_webProfile->settings()->resetFontFamily( QWebEngineSettings::SerifFont );
-    g_webProfile->settings()->resetFontFamily( QWebEngineSettings::SansSerifFont );
-    g_webProfile->settings()->resetFontFamily( QWebEngineSettings::FixedFont );
+    QWebEngineProfile::defaultProfile()->settings()->resetFontFamily( QWebEngineSettings::StandardFont );
+    QWebEngineProfile::defaultProfile()->settings()->resetFontFamily( QWebEngineSettings::SerifFont );
+    QWebEngineProfile::defaultProfile()->settings()->resetFontFamily( QWebEngineSettings::SansSerifFont );
+    QWebEngineProfile::defaultProfile()->settings()->resetFontFamily( QWebEngineSettings::FixedFont );
   }
   else if ( c.customFonts != prevWebFontFamily ) {
-    g_webProfile->settings()->setFontFamily( QWebEngineSettings::StandardFont,
+    QWebEngineProfile::defaultProfile()->settings()->setFontFamily( QWebEngineSettings::StandardFont,
                                                                     c.customFonts.standard );
-    g_webProfile->settings()->setFontFamily( QWebEngineSettings::SerifFont,
+    QWebEngineProfile::defaultProfile()->settings()->setFontFamily( QWebEngineSettings::SerifFont,
                                                                     c.customFonts.serif );
-    g_webProfile->settings()->setFontFamily( QWebEngineSettings::SansSerifFont,
+    QWebEngineProfile::defaultProfile()->settings()->setFontFamily( QWebEngineSettings::SansSerifFont,
                                                                     c.customFonts.sansSerif );
-    g_webProfile->settings()->setFontFamily( QWebEngineSettings::FixedFont,
+    QWebEngineProfile::defaultProfile()->settings()->setFontFamily( QWebEngineSettings::FixedFont,
                                                                     c.customFonts.monospace );
   }
 

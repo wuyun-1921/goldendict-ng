@@ -232,7 +232,6 @@ jobs:
         run: ls -R
 
       - name: Generate release notes
-        id: notes
         run: |
           LAST_TAG=$(git tag --sort=-v:refname --merged HEAD~1 'v*' 2>/dev/null | head -1)
           if [ -z "$LAST_TAG" ]; then
@@ -241,9 +240,9 @@ jobs:
             NOTES="**Changes since $LAST_TAG:**"$'\n'$'\n'
             NOTES+=$(git log --oneline --no-merges "$LAST_TAG..HEAD" | sed 's/^/- /')
           fi
-          echo "notes<<EOF" >> $GITHUB_OUTPUT
-          echo "$NOTES" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+          echo "RELEASE_NOTES<<EOF" >> "$GITHUB_ENV"
+          echo "$NOTES" >> "$GITHUB_ENV"
+          echo "EOF" >> "$GITHUB_ENV"
 
       - name: Create release
         env:
@@ -254,7 +253,7 @@ jobs:
             --target wy-main \
             --latest \
             --repo ${{ github.repository }} \
-            --notes '${{ steps.notes.outputs.notes }}'
+            --notes "$RELEASE_NOTES"
 
       - name: Upload artifacts
         env:

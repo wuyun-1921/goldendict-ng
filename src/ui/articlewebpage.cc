@@ -1,11 +1,10 @@
 #include "articlewebpage.hh"
-#include "webprofile.hh"
 #include "utils.hh"
 #include "common/globalbroadcaster.hh"
 #include <QTimer>
 
 ArticleWebPage::ArticleWebPage( QObject * parent, bool isPopup_ ):
-  QWebEnginePage( g_webProfile ? g_webProfile : QWebEngineProfile::defaultProfile(), parent ),
+  QWebEnginePage( parent ),
   isPopup( isPopup_ )
 {
 #if QT_VERSION >= QT_VERSION_CHECK( 6, 8, 0 )
