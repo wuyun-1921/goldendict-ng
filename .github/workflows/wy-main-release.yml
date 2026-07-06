@@ -23,11 +23,12 @@ jobs:
         run: |
           pacman -Syu --noconfirm
           pacman -S --noconfirm --needed \
-            git cmake ninja automake autoconf libtool \
             git cmake ninja \
             hunspell libvorbis libxtst lzo zlib \
             tomlplusplus fmt opencc xapian-core libzim \
             qt6-base qt6-svg qt6-multimedia qt6-webengine qt6-speech qt6-5compat qt6-tools
+
+      - uses: actions/checkout@v6
 
       - name: Install libeb from archlinuxcn
         run: |
