@@ -1987,6 +1987,10 @@ void save( const Class & c )
     opt.appendChild( dd.createTextNode( c.preferences.openWebsitesInPanel ? "1" : "0" ) );
     preferences.appendChild( opt );
 
+    opt = dd.createElement( "saveSession" );
+    opt.appendChild( dd.createTextNode( c.preferences.saveSession ? "1" : "0" ) );
+    preferences.appendChild( opt );
+
     opt = dd.createElement( "suppressWebDialogs" );
     opt.appendChild( dd.createTextNode( c.preferences.suppressWebDialogs ? "1" : "0" ) );
     preferences.appendChild( opt );
