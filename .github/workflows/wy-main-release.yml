@@ -24,34 +24,22 @@ jobs:
           pacman -Syu --noconfirm
           pacman -S --noconfirm --needed \
             git cmake ninja automake autoconf libtool \
+            git cmake ninja \
             hunspell libvorbis libxtst lzo zlib \
             tomlplusplus fmt opencc xapian-core libzim \
             qt6-base qt6-svg qt6-multimedia qt6-webengine qt6-speech qt6-5compat qt6-tools
 
-      - uses: actions/checkout@v6
-        with:
-          submodules: true
-          fetch-depth: 0
-
-      - name: Build libeb from source (AUR recipe)
+      - name: Install AUR dependencies
         run: |
-          curl -L 'https://github.com/mistydemeo/eb/releases/download/v4.4.3/eb-4.4.3.tar.bz2' -o eb.tar.bz2
-          tar xf eb.tar.bz2 && cd eb-4.4.3
-          curl -L 'https://sources.debian.org/data/main/e/eb/4.4.3-14/debian/patches/010_debian.patch' -o debian.patch
-          patch -p1 --forward < debian.patch || true
-          autoreconf -fi
-          ./configure --prefix=/usr --disable-static
-          make -j$(nproc) CFLAGS="-std=gnu17 -fpermissive"
-          make install
-
-      - name: Build with makepkg
-        run: |
-          cp PKGBUILD /tmp/
-          mkdir -p /tmp/src/goldendict-wy-git
-          cp -r . /tmp/src/goldendict-wy-git/
-          cd /tmp
+          git clone https://aur.archlinux.org/libeb.git /tmp/libeb
+          cd /tmp/libeb
           chown -R builduser:builduser .
-          su builduser -c 'makepkg -ed --noconfirm --needed'
+          su builduser -c 'makepkg -si --noconfirm --needed'
+
+      - name: Build goldendict with makepkg
+        run: |
+          chown -R builduser:builduser .
+          su builduser -c 'makepkg -s --noconfirm --needed'
           cp *.pkg.tar.zst "$GITHUB_WORKSPACE/"
 
       - uses: actions/upload-artifact@v7
