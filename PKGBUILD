@@ -41,7 +41,7 @@ md5sums=('SKIP')
 
 pkgver() {
 	cd "$srcdir/$pkgname"
-	printf "%s.r%s.%s" "$(git describe --tags --abbrev=0 | cut -c 2-8)" "$(git rev-list --count HEAD)" "$(git rev-parse --short HEAD)"
+	printf "%s.r%s.%s" "$(git describe --tags --abbrev=0 | sed 's/^v//; s/-.*//')" "$(git rev-list --count HEAD)" "$(git rev-parse --short HEAD)"
 }
 
 prepare() {
