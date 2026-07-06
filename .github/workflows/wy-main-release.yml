@@ -16,41 +16,59 @@ on:
 jobs:
   build-linux:
     runs-on: ubuntu-24.04
+    container:
+      image: archlinux:base-devel
     steps:
+      - name: Install build dependencies
+        run: |
+          pacman -Syu --noconfirm
+          pacman -S --noconfirm --needed \
+            git cmake ninja \
+            hunspell libvorbis libxtst lzo zlib \
+            libeb tomlplusplus fmt opencc xapian-core libzim \
+            qt6-base qt6-svg qt6-multimedia qt6-webengine qt6-speech qt6-5compat qt6-tools
+
       - uses: actions/checkout@v6
         with:
           submodules: true
 
-      - name: Install system dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y --fix-missing \
-            build-essential ninja-build ccache \
-            libvorbis-dev zlib1g-dev libhunspell-dev x11proto-record-dev \
-            libxtst-dev liblzo2-dev libbz2-dev \
-            libavcodec-dev libavformat-dev libavutil-dev libswresample-dev \
-            libeb16-dev libzstd-dev libxkbcommon-dev \
-            libxapian-dev libzim-dev libopencc-dev libfmt-dev \
-            libtomlplusplus-dev
-
-      - uses: jurplel/install-qt-action@v4
-        with:
-          version: "6.10.3"
-          arch: linux_gcc_64
-          modules: qtwebengine qtwebchannel qtpositioning qt5compat qtmultimedia qtimageformats qtspeech
-
       - name: Build
         run: |
-          cmake -S . -B build_dir -G Ninja \
+          cmake -B build_dir -S . -G Ninja \
             -DCMAKE_BUILD_TYPE=Release \
-            -DWITH_FFMPEG_PLAYER=ON
+            -DCMAKE_INSTALL_PREFIX=/usr \
+            -DUSE_SYSTEM_FMT=ON \
+            -DUSE_SYSTEM_TOML=ON \
+            -DWITH_FFMPEG_PLAYER=OFF
           cmake --build build_dir
+
+      - name: Create pacman package
+        run: |
+          VER=$(cat VERSION)
+          PKG="goldendict-wy-$VER-1-x86_64"
+          DESTDIR="$PWD/$PKG" cmake --install build_dir
+          # Write .PKGINFO metadata
+          echo "pkgname = goldendict-wy" > "$PKG/.PKGINFO"
+          echo "pkgver = $VER-1" >> "$PKG/.PKGINFO"
+          echo "pkgdesc = GoldenDict fork with multi-panel, always-query, session restore" >> "$PKG/.PKGINFO"
+          echo "url = https://github.com/wuyun-1921/goldendict-wy" >> "$PKG/.PKGINFO"
+          echo "arch = x86_64" >> "$PKG/.PKGINFO"
+          cd "$PKG"
+          tar --zstd -cf "../$PKG.pkg.tar.zst" .PKGINFO usr
+          mv "../$PKG.pkg.tar.zst" "$GITHUB_WORKSPACE/"
 
       - uses: actions/upload-artifact@v7
         if: ${{ !cancelled() }}
         with:
           name: linux
-          path: build_dir/goldendict
+          path: '*.pkg.tar.zst'
+          if-no-files-found: warn
+
+      - uses: actions/upload-artifact@v7
+        if: ${{ !cancelled() }}
+        with:
+          name: linux
+          path: '*.pkg.tar.zst'
           if-no-files-found: warn
 
   build-macOS:
