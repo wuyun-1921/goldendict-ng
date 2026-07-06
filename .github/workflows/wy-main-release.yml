@@ -1,0 +1,247 @@
+name: WY Main Release
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - wy-main
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: true
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --fix-missing \
+            build-essential ninja-build ccache \
+            libvorbis-dev zlib1g-dev libhunspell-dev x11proto-record-dev \
+            libxtst-dev liblzo2-dev libbz2-dev \
+            libavcodec-dev libavformat-dev libavutil-dev libswresample-dev \
+            libeb16-dev libzstd-dev libxkbcommon-dev \
+            libxapian-dev libzim-dev libopencc-dev libfmt-dev \
+            libtomlplusplus-dev
+
+      - uses: jurplel/install-qt-action@v4
+        with:
+          version: "6.10.3"
+          arch: linux_gcc_64
+          modules: qtwebengine qtwebchannel qtpositioning qt5compat qtmultimedia qtimageformats qtspeech
+
+      - name: Build
+        run: |
+          cmake -S . -B build_dir -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DWITH_FFMPEG_PLAYER=ON
+          cmake --build build_dir
+
+      - uses: actions/upload-artifact@v7
+        if: ${{ !cancelled() }}
+        with:
+          name: linux
+          path: build_dir/goldendict
+          if-no-files-found: warn
+
+  build-macOS:
+    permissions:
+      contents: read
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [macos-14]
+        qt_ver: ["6.10.3"]
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: true
+
+      - name: Install dependencies
+        env:
+          HOMEBREW_NO_AUTO_UPDATE: 1
+          HOMEBREW_NO_INSTALL_CLEANUP: 1
+        run: |
+          brew install --force --overwrite \
+            bzip2 \
+            create-dmg \
+            hunspell \
+            libiconv \
+            libogg \
+            libvorbis \
+            libzim \
+            lzip \
+            ccache \
+            opencc \
+            fmt \
+            ffmpeg@6 \
+            tomlplusplus \
+            xapian || true
+
+      - name: ccache
+        uses: hendrikmuhs/ccache-action@v1.2
+        with:
+          key: ${{ runner.os }}-${{ runner.arch }}-${{ matrix.qt_ver }}
+
+      - name: Cache EB
+        id: cache-eb
+        uses: actions/cache@v4
+        with:
+          path: |
+            /usr/local/lib/libeb*
+            /usr/local/include/eb
+            /usr/local/bin/eb*
+          key: ${{ runner.os }}-${{ runner.arch }}-eb-custom
+
+      - name: Install EB
+        if: steps.cache-eb.outputs.cache-hit != 'true'
+        run: |
+          git clone --depth 1 https://github.com/xiaoyifang/eb.git
+          cd eb && ./configure && make -j$(sysctl -n hw.ncpu) && sudo make install && cd ..
+
+      - uses: jurplel/install-qt-action@v4
+        with:
+          version: ${{ matrix.qt_ver }}
+          arch: clang_64
+          modules: qtwebengine qtwebchannel qtpositioning qt5compat qtmultimedia qtimageformats qtspeech
+
+      - name: Build
+        run: |
+          mkdir build_dir
+          export PKG_CONFIG_PATH="`brew --prefix ffmpeg@6`/lib/pkgconfig:$PKG_CONFIG_PATH"
+          cmake -S . -B build_dir -G Ninja \
+            -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+            -DWITH_FFMPEG_PLAYER=ON \
+            -DWITH_QT_MULTIMEDIA=OFF \
+            -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+            -DCMAKE_OSX_DEPLOYMENT_TARGET="12.0"
+          cmake --build build_dir
+
+      - name: Package
+        run: |
+          cmake --install build_dir/
+
+      - uses: actions/upload-artifact@v7
+        if: ${{ !cancelled() }}
+        with:
+          name: macOS-${{ matrix.os }}-Qt${{ matrix.qt_ver }}
+          if-no-files-found: warn
+          retention-days: 7
+          archive: false
+          path: '*.dmg'
+
+  build-Windows:
+    permissions:
+      contents: read
+    runs-on: windows-2022
+    strategy:
+      matrix:
+        qt_ver: ["6.10.3"]
+        arch: [win64_msvc2022_64]
+        include:
+          - arch: win64_msvc2022_64
+            vs_arch: amd64
+    steps:
+      - uses: jurplel/install-qt-action@v4
+        with:
+          version: ${{ matrix.qt_ver }}
+          arch: ${{ matrix.arch }}
+          modules: qtwebengine qtwebchannel qtpositioning qt5compat qtmultimedia qtimageformats qtspeech
+
+      - uses: actions/checkout@v6
+        with:
+          submodules: true
+
+      - name: Setup MSVC environment
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: ${{ matrix.vs_arch }}
+
+      - name: Build
+        id: build
+        run: |
+          New-Item -Path './build_dir' -ItemType Directory
+          cmake -S . -B "./build_dir" -G Ninja `
+            -DCMAKE_C_COMPILER="cl.exe" -DCMAKE_CXX_COMPILER="cl.exe" `
+            -DCMAKE_BUILD_TYPE=RelWithDebInfo `
+            -DWITH_FFMPEG_PLAYER=OFF
+          cmake --build "./build_dir"
+
+      - name: Package
+        run: |
+          cd './build_dir'
+          cpack --verbose
+
+      - uses: actions/upload-artifact@v7
+        if: ${{ !cancelled() }}
+        with:
+          name: Windows-${{ matrix.arch }}-Qt${{ matrix.qt_ver }}-installer
+          if-no-files-found: warn
+          retention-days: 7
+          path: ./build_dir/*.exe
+
+      - uses: actions/upload-artifact@v7
+        if: ${{ !cancelled() }}
+        with:
+          name: Windows-${{ matrix.arch }}-Qt${{ matrix.qt_ver }}-portable
+          if-no-files-found: warn
+          retention-days: 7
+          path: ./build_dir/*.7z
+
+  setup:
+    runs-on: ubuntu-24.04
+    outputs:
+      newTag: ${{ steps.tag.outputs.newTag }}
+    steps:
+      - uses: actions/checkout@v6
+      - name: Compute tag
+        id: tag
+        run: |
+          VERSION=$(xargs < VERSION)
+          SHA_SHORT=$(git rev-parse --short=10 HEAD)
+          echo "newTag=v${VERSION}-alpha.${SHA_SHORT}" >> $GITHUB_OUTPUT
+
+  release:
+    needs: [build-linux, build-macOS, build-Windows, setup]
+    if: ${{ !cancelled() }}
+    permissions:
+      contents: write
+    runs-on: ubuntu-24.04
+    env:
+      newTag: ${{ needs.setup.outputs.newTag }}
+    steps:
+      - uses: actions/download-artifact@v8
+        continue-on-error: true
+        with:
+          merge-multiple: true
+
+      - name: List files
+        run: ls -R
+
+      - name: Create release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create '${{ env.newTag }}' \
+            -t "Goldendict-ng WY fork ${{ env.newTag }}" \
+            --target wy-main \
+            --prerelease \
+            --latest=false \
+            --repo ${{ github.repository }}
+
+      - name: Upload artifacts
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release upload '${{ env.newTag }}' --repo ${{ github.repository }} --clobber \
+            *.exe *.7z *.dmg
