@@ -218,6 +218,11 @@ jobs:
     env:
       newTag: ${{ needs.setup.outputs.newTag }}
     steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          ref: ${{ needs.setup.outputs.newTag }}
+
       - uses: actions/download-artifact@v8
         continue-on-error: true
         with:
@@ -225,6 +230,20 @@ jobs:
 
       - name: List files
         run: ls -R
+
+      - name: Generate release notes
+        id: notes
+        run: |
+          LAST_TAG=$(git tag --sort=-v:refname --merged HEAD~1 'v*' 2>/dev/null | head -1)
+          if [ -z "$LAST_TAG" ]; then
+            NOTES="Initial release."
+          else
+            NOTES="**Changes since $LAST_TAG:**"$'\n'$'\n'
+            NOTES+=$(git log --oneline --no-merges "$LAST_TAG..HEAD" | sed 's/^/- /')
+          fi
+          echo "notes<<EOF" >> $GITHUB_OUTPUT
+          echo "$NOTES" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
 
       - name: Create release
         env:
@@ -234,7 +253,8 @@ jobs:
             -t "Goldendict-ng WY fork ${{ env.newTag }}" \
             --target wy-main \
             --latest \
-            --repo ${{ github.repository }}
+            --repo ${{ github.repository }} \
+            --notes '${{ steps.notes.outputs.notes }}'
 
       - name: Upload artifacts
         env:
