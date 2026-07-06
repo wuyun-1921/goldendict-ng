@@ -1084,7 +1084,7 @@ MainWindow::MainWindow( Config::Class & cfg_ ):
       groupList->setCurrentGroup( av->getCurrentGroupId() );
       groupList->blockSignals( false );
       // Update dictionary bar to reflect the newly focused tab's group
-      unsigned grp_id = av->getCurrentGroupId();
+      unsigned grp_id     = av->getCurrentGroupId();
       cfg.lastMainGroupId = grp_id;
       dictionaryBar.updateToGroup( groupInstances.findGroup( grp_id ), &cfg.mutedDictionaries, cfg );
     }
@@ -1681,7 +1681,7 @@ void MainWindow::showTabContextMenu( QTabWidget * panel, int tabIdx, QPoint glob
 
   // Close all tabs except current (panel-scoped)
   if ( panel->count() > 1 ) {
-    QAction * closeRestAction = menu.addAction( tr( "Close all tabs except current" ) );
+    QAction * closeRestAction       = menu.addAction( tr( "Close all tabs except current" ) );
     QPointer< QTabWidget > panelPtr = panel;
     QWidget * keepWidget            = panel->widget( tabIdx );
     connect( closeRestAction, &QAction::triggered, this, [ this, panelPtr, keepWidget ]() {
@@ -1697,7 +1697,7 @@ void MainWindow::showTabContextMenu( QTabWidget * panel, int tabIdx, QPoint glob
   menu.addSeparator();
 
   // Close all tabs (panel-scoped)
-  QAction * closeAllAction        = menu.addAction( tr( "Close all tabs" ) );
+  QAction * closeAllAction = menu.addAction( tr( "Close all tabs" ) );
   closeAllAction->setShortcut( QKeySequence( "Ctrl+Shift+W" ) );
   closeAllAction->setShortcutVisibleInContextMenu( true );
   QPointer< QTabWidget > panelPtr = panel;
@@ -1764,10 +1764,10 @@ void MainWindow::showTabContextMenu( QTabWidget * panel, int tabIdx, QPoint glob
     }
 
     // Add to Favorites (blue star if already favorited)
-    QString headword          = av->getCurrentWord();
-    bool alreadyFav            = !headword.isEmpty() && ui.favoritesPaneWidget->isWordPresentInActiveFolder( headword );
-    QIcon favIcon              = alreadyFav ? blueStarIcon : starIcon;
-    QAction * favAction        = menu.addAction( favIcon, tr( "Add to Favorites" ) );
+    QString headword    = av->getCurrentWord();
+    bool alreadyFav     = !headword.isEmpty() && ui.favoritesPaneWidget->isWordPresentInActiveFolder( headword );
+    QIcon favIcon       = alreadyFav ? blueStarIcon : starIcon;
+    QAction * favAction = menu.addAction( favIcon, tr( "Add to Favorites" ) );
     connect( favAction, &QAction::triggered, this, [ this, av ]() {
       QString word = av->getCurrentWord();
       if ( !word.isEmpty() )
@@ -2594,8 +2594,8 @@ ArticleView * MainWindow::createNewTab( bool switchToIt, const QString & name )
 {
   ArticleView * view = createArticleView();
 
-  int index          = cfg.preferences.newTabsOpenAfterCurrentOne ? ui.tabWidget->currentIndex() + 1 : ui.tabWidget->count();
-  QString escaped    = Utils::escapeAmps( name );
+  int index = cfg.preferences.newTabsOpenAfterCurrentOne ? ui.tabWidget->currentIndex() + 1 : ui.tabWidget->count();
+  QString escaped = Utils::escapeAmps( name );
 
   ui.tabWidget->insertTab( index, view, escaped );
   mruList.append( dynamic_cast< QWidget * >( view ) );
@@ -2625,7 +2625,7 @@ void MainWindow::tabCloseRequested( int x )
 void MainWindow::closeCurrentTab()
 {
   QTabWidget * panel = activePanel();
-  int idx             = panel->currentIndex();
+  int idx            = panel->currentIndex();
   if ( idx < 0 )
     return;
   closeTabInPanel( panel, idx );
@@ -3381,7 +3381,7 @@ bool MainWindow::handleBackForwardMouseButtons( QMouseEvent * event )
 bool MainWindow::eventFilter( QObject * obj, QEvent * ev )
 {
   if ( ev->type() == QEvent::ShortcutOverride || ev->type() == QEvent::KeyPress ) {
-    auto * ke = dynamic_cast< QKeyEvent * >( ev );
+    auto * ke     = dynamic_cast< QKeyEvent * >( ev );
     const int key = ke->key();
 
     // Handle F3/Shift+F3 shortcuts
