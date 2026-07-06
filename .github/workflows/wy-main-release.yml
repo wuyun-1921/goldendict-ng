@@ -53,13 +53,6 @@ jobs:
           path: '*.pkg.tar.zst'
           if-no-files-found: warn
 
-      - uses: actions/upload-artifact@v7
-        if: ${{ !cancelled() }}
-        with:
-          name: linux
-          path: '*.pkg.tar.zst'
-          if-no-files-found: warn
-
   build-macOS:
     permissions:
       contents: read

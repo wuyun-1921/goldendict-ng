@@ -199,6 +199,10 @@ public:
   {
     return contentLoaded;
   }
+  void setContentLoaded( bool v )
+  {
+    contentLoaded = v;
+  }
 
   /// Returns whether this view is an internal page (welcome, untitled, etc.)
   bool isInternalPage() const

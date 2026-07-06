@@ -2044,7 +2044,10 @@ void MainWindow::loadSession()
       av->setCurrentGroupId( info.group );
       av->setCurrentWord( info.word );
       av->collapsedDicts = info.collapsedDicts;
+      av->setContentLoaded( false );
       updateTabTitleMarker( av );
+      if ( t == 0 && ui.tabWidget->count() > 0 )
+        ui.tabWidget->setTabText( 0, Utils::escapeAmps( info.word ) );
     }
   }
   if ( !activeTabs.isEmpty() && activeTabs[ 0 ] < ui.tabWidget->count() )
