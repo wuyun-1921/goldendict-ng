@@ -46,6 +46,7 @@
 #include <QVersionNumber>
 
 #include "weburlrequestinterceptor.hh"
+#include "webprofile.hh"
 #include "folding.hh"
 #include "articlesaver.hh"
 
@@ -115,46 +116,48 @@ namespace {
 QString ApplicationSettingName = "GoldenDict";
 }
 
+QWebEngineProfile * g_webProfile = nullptr;
+
 void MainWindow::changeWebEngineViewFont() const
 {
   if ( !cfg.preferences.useFallbackFonts ) {
-    QWebEngineProfile::defaultProfile()->settings()->resetFontFamily( QWebEngineSettings::StandardFont );
-    QWebEngineProfile::defaultProfile()->settings()->resetFontFamily( QWebEngineSettings::SerifFont );
-    QWebEngineProfile::defaultProfile()->settings()->resetFontFamily( QWebEngineSettings::SansSerifFont );
-    QWebEngineProfile::defaultProfile()->settings()->resetFontFamily( QWebEngineSettings::FixedFont );
+    g_webProfile->settings()->resetFontFamily( QWebEngineSettings::StandardFont );
+    g_webProfile->settings()->resetFontFamily( QWebEngineSettings::SerifFont );
+    g_webProfile->settings()->resetFontFamily( QWebEngineSettings::SansSerifFont );
+    g_webProfile->settings()->resetFontFamily( QWebEngineSettings::FixedFont );
     return;
   }
 
   if ( cfg.preferences.customFonts.standard.isEmpty() ) {
-    QWebEngineProfile::defaultProfile()->settings()->resetFontFamily( QWebEngineSettings::StandardFont );
+    g_webProfile->settings()->resetFontFamily( QWebEngineSettings::StandardFont );
   }
   else {
-    QWebEngineProfile::defaultProfile()->settings()->setFontFamily( QWebEngineSettings::StandardFont,
-                                                                    cfg.preferences.customFonts.standard );
+    g_webProfile->settings()->setFontFamily( QWebEngineSettings::StandardFont,
+                                             cfg.preferences.customFonts.standard );
   }
 
   if ( cfg.preferences.customFonts.serif.isEmpty() ) {
-    QWebEngineProfile::defaultProfile()->settings()->resetFontFamily( QWebEngineSettings::SerifFont );
+    g_webProfile->settings()->resetFontFamily( QWebEngineSettings::SerifFont );
   }
   else {
-    QWebEngineProfile::defaultProfile()->settings()->setFontFamily( QWebEngineSettings::SerifFont,
-                                                                    cfg.preferences.customFonts.serif );
+    g_webProfile->settings()->setFontFamily( QWebEngineSettings::SerifFont,
+                                             cfg.preferences.customFonts.serif );
   }
 
   if ( cfg.preferences.customFonts.sansSerif.isEmpty() ) {
-    QWebEngineProfile::defaultProfile()->settings()->resetFontFamily( QWebEngineSettings::SansSerifFont );
+    g_webProfile->settings()->resetFontFamily( QWebEngineSettings::SansSerifFont );
   }
   else {
-    QWebEngineProfile::defaultProfile()->settings()->setFontFamily( QWebEngineSettings::SansSerifFont,
-                                                                    cfg.preferences.customFonts.sansSerif );
+    g_webProfile->settings()->setFontFamily( QWebEngineSettings::SansSerifFont,
+                                             cfg.preferences.customFonts.sansSerif );
   }
 
   if ( cfg.preferences.customFonts.monospace.isEmpty() ) {
-    QWebEngineProfile::defaultProfile()->settings()->resetFontFamily( QWebEngineSettings::FixedFont );
+    g_webProfile->settings()->resetFontFamily( QWebEngineSettings::FixedFont );
   }
   else {
-    QWebEngineProfile::defaultProfile()->settings()->setFontFamily( QWebEngineSettings::FixedFont,
-                                                                    cfg.preferences.customFonts.monospace );
+    g_webProfile->settings()->setFontFamily( QWebEngineSettings::FixedFont,
+                                             cfg.preferences.customFonts.monospace );
   }
 }
 
@@ -233,35 +236,37 @@ MainWindow::MainWindow( Config::Class & cfg_ ):
     }
   } );
 
-  // Persistent web storage: cookies, localStorage, IndexedDB
-  auto * profile = QWebEngineProfile::defaultProfile();
-  profile->setHttpCacheType( QWebEngineProfile::DiskHttpCache );
-  profile->setPersistentStoragePath( Config::getConfigDir() + "QtWebEngine" );
-  profile->setPersistentCookiesPolicy( QWebEngineProfile::AllowPersistentCookies );
+  // Custom named profile for persistent web storage (cookies, localStorage, IndexedDB).
+  // defaultProfile() ignores persistent-storage settings on some Qt6 builds.
+  g_webProfile = new QWebEngineProfile( "goldendict", this );
+  g_webProfile->setHttpCacheType( QWebEngineProfile::DiskHttpCache );
+  g_webProfile->setPersistentStoragePath( Config::getConfigDir() + "QtWebEngine" );
+  g_webProfile->setPersistentCookiesPolicy( QWebEngineProfile::AllowPersistentCookies );
+  QDir().mkpath( Config::getConfigDir() + "QtWebEngine" );
 
   localSchemeHandler     = new LocalSchemeHandler( articleNetMgr, this );
   QStringList htmlScheme = { "gdlookup", "bword", "entry", "gdinternal" };
   for ( const auto & localScheme : htmlScheme ) {
-    QWebEngineProfile::defaultProfile()->installUrlSchemeHandler( localScheme.toLatin1(), localSchemeHandler );
+    g_webProfile->installUrlSchemeHandler( localScheme.toLatin1(), localSchemeHandler );
   }
 
 
   QStringList localSchemes = { "gdau", "gico", "qrcx", "bres", "gdprg", "gdvideo", "gdtts" };
   resourceSchemeHandler    = new ResourceSchemeHandler( articleNetMgr, this );
   for ( const auto & localScheme : localSchemes ) {
-    QWebEngineProfile::defaultProfile()->installUrlSchemeHandler( localScheme.toLatin1(), resourceSchemeHandler );
+    g_webProfile->installUrlSchemeHandler( localScheme.toLatin1(), resourceSchemeHandler );
   }
 
-  QWebEngineProfile::defaultProfile()->setUrlRequestInterceptor( new WebUrlRequestInterceptor( this ) );
-  connect( QWebEngineProfile::defaultProfile(),
+  g_webProfile->setUrlRequestInterceptor( new WebUrlRequestInterceptor( this ) );
+  connect( g_webProfile,
            &QWebEngineProfile::downloadRequested,
            this,
            &MainWindow::handleDownloadRequested );
   // Identify as GoldenDict, but avoid standard "QtWebEngine/..." identifier which some sites might block
-  QString userAgent = QWebEngineProfile::defaultProfile()->httpUserAgent();
+  QString userAgent = g_webProfile->httpUserAgent();
   userAgent.replace( RX::qtWebEngineUserAgent, "" );
   userAgent.replace( RX::windowsNtVersion, "Windows NT 10.0" );
-  QWebEngineProfile::defaultProfile()->setHttpUserAgent( userAgent );
+  g_webProfile->setHttpUserAgent( userAgent );
 #ifdef EPWING_SUPPORT
   Epwing::initialize();
 #endif
