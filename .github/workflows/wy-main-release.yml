@@ -23,7 +23,7 @@ jobs:
         run: |
           pacman -Syu --noconfirm
           pacman -S --noconfirm --needed \
-            git cmake ninja \
+            git cmake ninja automake autoconf libtool \
             hunspell libvorbis libxtst lzo zlib \
             tomlplusplus fmt opencc xapian-core libzim \
             qt6-base qt6-svg qt6-multimedia qt6-webengine qt6-speech qt6-5compat qt6-tools
@@ -32,12 +32,16 @@ jobs:
         with:
           submodules: true
 
-      - name: Build libeb from source
+      - name: Build libeb from source (AUR-only dep)
         run: |
           git clone --depth 1 https://github.com/xiaoyifang/eb.git /tmp/eb
-          cd /tmp/eb && ./configure --prefix=/usr && make -j$(nproc) && make install
+          cd /tmp/eb
+          rm -f libebutils/getopt.c libebutils/getopt1.c libebutils/getopt.h
+          autoreconf -fi
+          ./configure --prefix=/usr --disable-nls
+          make -j$(nproc) && make install
 
-      - name: Build goldendict
+      - name: Build
         run: |
           cmake -B build_dir -S . -G Ninja \
             -DCMAKE_BUILD_TYPE=Release \
@@ -47,19 +51,17 @@ jobs:
             -DWITH_FFMPEG_PLAYER=OFF
           cmake --build build_dir
 
-      - name: Create pacman package
+      - name: Create package
         run: |
           VER=$(cat VERSION)
           PKG="goldendict-wy-$VER-1-x86_64"
           DESTDIR="$PWD/$PKG" cmake --install build_dir
-          # Write .PKGINFO metadata
           echo "pkgname = goldendict-wy" > "$PKG/.PKGINFO"
           echo "pkgver = $VER-1" >> "$PKG/.PKGINFO"
           echo "pkgdesc = GoldenDict fork with multi-panel, always-query, session restore" >> "$PKG/.PKGINFO"
           echo "url = https://github.com/wuyun-1921/goldendict-ng" >> "$PKG/.PKGINFO"
           echo "arch = x86_64" >> "$PKG/.PKGINFO"
-          cd "$PKG"
-          tar --zstd -cf "../$PKG.pkg.tar.zst" .PKGINFO usr
+          cd "$PKG" && tar --zstd -cf "../$PKG.pkg.tar.zst" .PKGINFO usr
           mv "../$PKG.pkg.tar.zst" "$GITHUB_WORKSPACE/"
 
       - uses: actions/upload-artifact@v7
