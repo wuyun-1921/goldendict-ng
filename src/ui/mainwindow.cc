@@ -1581,6 +1581,10 @@ QTabWidget * MainWindow::createPanel()
       if ( view ) {
         lastFocusedArticleView = view;
         view->focus();
+        groupList->blockSignals( true );
+        groupList->setCurrentGroup( view->getCurrentGroupId() );
+        groupList->blockSignals( false );
+        updateFoundInDictsList();
       }
     }
   } );
@@ -2110,6 +2114,10 @@ void MainWindow::loadSession()
 
   QTimer::singleShot( 2000, this, [ this ]() {
     m_sessionRestoreInProgress = false;
+  } );
+  // Dict list may be empty because tabSwitched fired before content loaded
+  QTimer::singleShot( 4000, this, [ this ]() {
+    updateFoundInDictsList();
   } );
   m_sessionSaved = false;
 }
@@ -3140,22 +3148,24 @@ void MainWindow::updateFoundInDictsList()
     return;
   }
 
-  // If current view is a website, don't rebuild the list, just select the corresponding item
+  // If current view is a website, rebuild from a non-website tab
   if ( view->isWebsite() ) {
-    QString websiteDictId = view->getActiveArticleId();
-
-    if ( !websiteDictId.isEmpty() ) {
-      // Find and select the corresponding item in the existing list
-      for ( int i = 0; i < ui.dictsList->count(); ++i ) {
-        QListWidgetItem * item = ui.dictsList->item( i );
-        if ( item && item->data( Qt::UserRole ).toString() == websiteDictId ) {
-          ui.dictsList->setCurrentItem( item );
-          return; // No need to proceed further
+    // Find a non-website tab to source the dictionary list
+    for ( int p = 0; p < ui.panelSplitter->count(); p++ ) {
+      auto * panel = qobject_cast< QTabWidget * >( ui.panelSplitter->widget( p ) );
+      if ( !panel )
+        continue;
+      for ( int i = 0; i < panel->count(); i++ ) {
+        auto * av = qobject_cast< ArticleView * >( panel->widget( i ) );
+        if ( av && !av->isWebsite() ) {
+          view = av;
+          goto build_list;
         }
       }
     }
-    return;
+    return; // No non-website tab found
   }
+build_list:
 
   ui.dictsList->clear();
 
