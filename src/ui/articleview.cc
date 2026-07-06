@@ -1180,9 +1180,11 @@ void ArticleView::openLink( const QUrl & url, const QUrl & ref, const QString & 
       QStringList dictsList = Utils::Url::queryItemValue( ref, "dictionaries" ).split( ",", Qt::SkipEmptyParts );
 
       showDefinition( word, dictsList, getGroup( ref ), false );
+      emit wordLookedUp( this, word, getGroup( ref ), scrollTo );
     }
     else {
       showDefinition( word, getGroup( ref ), scrollTo, contexts );
+      emit wordLookedUp( this, word, getGroup( ref ), scrollTo );
     }
   }
   else if ( url.scheme() == "gdlookup" ) // Plain html links inherit gdlookup scheme
@@ -1197,7 +1199,8 @@ void ArticleView::openLink( const QUrl & url, const QUrl & ref, const QString & 
         QStringList dictsList = Utils::Url::queryItemValue( url, "dictionaries" ).split( ",", Qt::SkipEmptyParts );
 
         showDefinition( word, dictsList, getGroup( url ), false );
-            return;
+        emit wordLookedUp( this, word, getGroup( url ), scrollTo );
+        return;
       }
 
       QString newScrollTo( scrollTo );
@@ -1215,8 +1218,8 @@ void ArticleView::openLink( const QUrl & url, const QUrl & ref, const QString & 
       }
 
       showDefinition( word, getGroup( ref ), newScrollTo, contexts );
-
-      }
+      emit wordLookedUp( this, word, getGroup( ref ), newScrollTo );
+    }
   }
   else if ( url.scheme() == "bres" || url.scheme() == "gdau" || url.scheme() == "gdvideo"
             || Utils::Url::isAudioUrl( url ) ) {

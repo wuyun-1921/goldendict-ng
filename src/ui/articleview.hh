@@ -68,6 +68,8 @@ class ArticleView: public QWidget
 
   bool historyMode = false;
 
+  bool alwaysQueryFlag = false;
+
   // current active dictionary id;
   QString activeDictId;
 
@@ -122,6 +124,15 @@ public:
 
   /// Returns "gdfrom-" + dictionaryId.
   static QString scrollToFromDictionaryId( const QString & dictionaryId );
+
+  bool alwaysQuery() const
+  {
+    return alwaysQueryFlag;
+  }
+  void setAlwaysQuery( bool on )
+  {
+    alwaysQueryFlag = on;
+  }
 
   /// Shows the definition of the given word with the given group.
   /// scrollTo can be optionally set to a "gdfrom-xxxx" identifier to position
@@ -332,6 +343,9 @@ signals:
 
   /// Signal to add word to history even if history is disabled
   void forceAddWordToHistory( const QString & word );
+
+  /// Emitted when a new word is looked up in this view — used for Always Query forwarding
+  void wordLookedUp( ArticleView * source, const QString & word, unsigned group, const QString & scrollTo );
 
   /// Signal to close popup menu
   void closePopupMenu();

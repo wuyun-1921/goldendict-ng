@@ -957,6 +957,10 @@ Class load()
       c.preferences.openWebsitesInPanel = ( preferences.namedItem( "openWebsitesInPanel" ).toElement().text() == "1" );
     }
 
+    if ( !preferences.namedItem( "saveSession" ).isNull() ) {
+      c.preferences.saveSession = ( preferences.namedItem( "saveSession" ).toElement().text() == "1" );
+    }
+
     if ( !preferences.namedItem( "suppressWebDialogs" ).isNull() ) {
       c.preferences.suppressWebDialogs = ( preferences.namedItem( "suppressWebDialogs" ).toElement().text() == "1" );
     }
