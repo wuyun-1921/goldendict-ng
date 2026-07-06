@@ -60,6 +60,8 @@ class ArticleView: public QWidget
   unsigned currentGroupId;
   const QLineEdit * translateLine;
 
+  bool contentLoaded = false;
+
   /// current searching word.
   QString currentWord;
 
@@ -192,6 +194,11 @@ public:
 
   QString getCurrentWord();
   void setCurrentWord( const QString & word );
+
+  bool isContentLoaded() const
+  {
+    return contentLoaded;
+  }
 
   /// Returns whether this view is an internal page (welcome, untitled, etc.)
   bool isInternalPage() const

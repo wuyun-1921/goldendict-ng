@@ -715,6 +715,7 @@ void ArticleView::load( const QUrl & url, const QString & customTitle )
   else {
     isWebsiteView = false;
   }
+  contentLoaded = true;
   webview->load( url );
 }
 
@@ -2442,6 +2443,7 @@ void ArticleView::load( QString url, const QString & customTitle )
     isWebsiteView = true;
     setWebsiteHost( qurl.host() );
   }
+  contentLoaded = true;
   webview->load( qurl );
 }
 
