@@ -256,6 +256,8 @@ public:
   /// Per-tab collapsed dictionary IDs — persisted across session save/restore
   QSet< QString > collapsedDicts;
 
+  void setReverseScrollZone( bool reversed );
+
   /// Returns whether this view is for website browsing
   bool isWebsite() const
   {
@@ -516,14 +518,22 @@ private:
 class ArticleViewAgent: public QObject
 {
   Q_OBJECT
+  Q_PROPERTY( bool reverseScrollZone READ reverseScrollZone WRITE setReverseScrollZone NOTIFY reverseScrollZoneChanged )
   ArticleView * articleView;
+
+  bool m_reverseScrollZone = false;
 
 public:
   explicit ArticleViewAgent( ArticleView * articleView );
 
+  bool reverseScrollZone() const { return m_reverseScrollZone; }
+  void setReverseScrollZone( bool reversed );
 
 public slots:
   Q_INVOKABLE void onJsActiveArticleChanged( const QString & id );
   Q_INVOKABLE void linkClickedInHtml( const QUrl & );
   Q_INVOKABLE void collapseInHtml( const QString & dictId, bool on = true ) const;
+
+signals:
+  void reverseScrollZoneChanged( bool reversed );
 };

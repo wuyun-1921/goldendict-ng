@@ -1429,6 +1429,12 @@ void ArticleView::setCurrentWord( const QString & word )
   currentWord = word;
 }
 
+void ArticleView::setReverseScrollZone( bool reversed )
+{
+  if ( agent )
+    agent->setReverseScrollZone( reversed );
+}
+
 void ArticleView::back()
 {
   // Don't allow navigating back to page 0, which is usually the initial
@@ -2539,6 +2545,14 @@ void ArticleViewAgent::onJsActiveArticleChanged( const QString & id )
 void ArticleViewAgent::linkClickedInHtml( const QUrl & url )
 {
   articleView->linkClickedInHtml( url );
+}
+
+void ArticleViewAgent::setReverseScrollZone( bool reversed )
+{
+  if ( m_reverseScrollZone != reversed ) {
+    m_reverseScrollZone = reversed;
+    emit reverseScrollZoneChanged( reversed );
+  }
 }
 
 void ArticleViewAgent::collapseInHtml( const QString & dictId, bool on ) const

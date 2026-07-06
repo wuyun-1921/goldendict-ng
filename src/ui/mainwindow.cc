@@ -2854,6 +2854,7 @@ ArticleView * MainWindow::createArticleView()
 
   view->setSelectionBySingleClick( cfg.preferences.selectWordBySingleClick );
   view->setZoomFactor( cfg.preferences.zoomFactor );
+  view->setReverseScrollZone( cfg.preferences.reverseScrollZone );
   return view;
 }
 

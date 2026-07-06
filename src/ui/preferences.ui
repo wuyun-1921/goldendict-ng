@@ -1947,6 +1947,16 @@ from mouse-over, selection, clipboard or command line</string>
               </property>
              </widget>
             </item>
+            <item>
+             <widget class="QCheckBox" name="reverseScrollZone">
+              <property name="toolTip">
+               <string>Reverse the scroll zone behaviour: peripheral zone scrolls article, middle zone scrolls page.</string>
+              </property>
+              <property name="text">
+               <string>Reverse scroll zones</string>
+              </property>
+             </widget>
+            </item>
            </layout>
           </item>
          </layout>

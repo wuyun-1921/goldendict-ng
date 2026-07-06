@@ -263,6 +263,7 @@ Preferences::Preferences( QWidget * parent, Config::Class & cfg_ ):
     ui.dictPanelHeightUnit->setCurrentIndex( unitIdx );
   ui.dictPanelHeightUnit->setEnabled( false );
   ui.dictPanelScrollZone->setValue( p.dictPanelScrollZone );
+  ui.reverseScrollZone->setChecked( p.reverseScrollZone );
 
   // Gray out height/spin controls when limit is unchecked
   auto updateDictPanelWidgets = [ this ]() {
@@ -552,6 +553,7 @@ Config::Preferences Preferences::getPreferences()
   p.dictPanelMaxHeight  = ui.dictPanelMaxHeight->value();
   p.dictPanelHeightUnit = ui.dictPanelHeightUnit->currentText();
   p.dictPanelScrollZone = ui.dictPanelScrollZone->value();
+  p.reverseScrollZone   = ui.reverseScrollZone->isChecked();
 
   p.stripClipboard         = ui.stripClipboard->isChecked();
   p.raiseWindowOnSearch    = ui.raiseWindowOnSearch->isChecked();

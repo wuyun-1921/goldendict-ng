@@ -159,6 +159,7 @@ Preferences::Preferences():
   dictPanelMaxHeight( 300 ),
   dictPanelHeightUnit( "px" ),
   dictPanelScrollZone( 50 ),
+  reverseScrollZone( false ),
   sideBySideDefaultSplit( 50 )
 {
 }
@@ -1044,6 +1045,8 @@ Class load()
       c.preferences.dictPanelHeightUnit = preferences.namedItem( "dictPanelHeightUnit" ).toElement().text();
     if ( !preferences.namedItem( "dictPanelScrollZone" ).isNull() )
       c.preferences.dictPanelScrollZone = preferences.namedItem( "dictPanelScrollZone" ).toElement().text().toInt();
+    if ( !preferences.namedItem( "reverseScrollZone" ).isNull() )
+      c.preferences.reverseScrollZone = ( preferences.namedItem( "reverseScrollZone" ).toElement().text() == "1" );
 
     if ( !preferences.namedItem( "sideBySideDefaultSplit" ).isNull() )
       c.preferences.sideBySideDefaultSplit =
@@ -2074,6 +2077,9 @@ void save( const Class & c )
     preferences.appendChild( opt );
     opt = dd.createElement( "dictPanelScrollZone" );
     opt.appendChild( dd.createTextNode( QString::number( c.preferences.dictPanelScrollZone ) ) );
+    preferences.appendChild( opt );
+    opt = dd.createElement( "reverseScrollZone" );
+    opt.appendChild( dd.createTextNode( c.preferences.reverseScrollZone ? "1" : "0" ) );
     preferences.appendChild( opt );
     opt = dd.createElement( "sideBySideDefaultSplit" );
     opt.appendChild( dd.createTextNode( QString::number( c.preferences.sideBySideDefaultSplit ) ) );
