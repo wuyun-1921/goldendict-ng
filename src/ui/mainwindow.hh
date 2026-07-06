@@ -70,6 +70,8 @@ public:
   int totalTabCount() const;
   int panelCount() const;
   void distributePanelSizes();
+  void saveSession();
+  void loadSession();
 
   enum class WildcardPolicy {
     EscapeWildcards,
@@ -147,6 +149,8 @@ private:
 
   QAction * alwaysQueryMainAction = nullptr;
   QPointer< ArticleView > lastFocusedArticleView; // last ArticleView that had keyboard focus
+  bool m_sessionSaved               = false;
+  bool m_sessionRestoreInProgress   = false;
   QToolBar * navToolbar;
   MainStatusBar * mainStatusBar;
   QAction *navBack, *navForward, *navPronounce, *enableScanningAction;
