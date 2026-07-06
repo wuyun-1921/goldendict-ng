@@ -1,6 +1,5 @@
 # GoldenDict-wy
-
-A [goldendict-ng](https://xiaoyifang.github.io/goldendict-ng/developer/) fork with extra features.
+GoldenDict-wy is a [Goldendict-ng](https://xiaoyifang.github.io/goldendict-ng/developer/) fork with more features.
 
 ## Features added on top of upstream
 
