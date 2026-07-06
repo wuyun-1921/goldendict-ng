@@ -25,7 +25,7 @@ jobs:
           pacman -S --noconfirm --needed \
             git cmake ninja \
             hunspell libvorbis libxtst lzo zlib \
-            libeb tomlplusplus fmt opencc xapian-core libzim \
+            tomlplusplus fmt opencc xapian-core libzim \
             qt6-base qt6-svg qt6-multimedia qt6-webengine qt6-speech qt6-5compat qt6-tools
 
       - uses: actions/checkout@v6
@@ -39,7 +39,8 @@ jobs:
             -DCMAKE_INSTALL_PREFIX=/usr \
             -DUSE_SYSTEM_FMT=ON \
             -DUSE_SYSTEM_TOML=ON \
-            -DWITH_FFMPEG_PLAYER=OFF
+            -DWITH_FFMPEG_PLAYER=OFF \
+            -DWITH_EPWING_SUPPORT=OFF
           cmake --build build_dir
 
       - name: Create pacman package
