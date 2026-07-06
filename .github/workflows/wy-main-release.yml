@@ -39,10 +39,10 @@ jobs:
 
       - name: Build goldendict with makepkg
         run: |
-          useradd -m builder
-          echo 'builder ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers
-          chown -R builder:builder .
-          su builder -c 'makepkg -s --noconfirm --needed'
+          useradd -m build -G wheel
+          echo '%wheel ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers
+          chown -R build:build .
+          su build -c 'makepkg -s --noconfirm --needed'
           cp *.pkg.tar.zst "$GITHUB_WORKSPACE/"
 
       - uses: actions/upload-artifact@v7
