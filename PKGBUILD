@@ -1,6 +1,4 @@
-# Maintainer: slbtty <shenlebantongying@gmail.com>
-
-pkgname=goldendict-ng-git
+pkgname=goldendict-wy
 pkgver=24.11.0.r5693.15207cf4
 pkgrel=1
 pkgdesc="The next generation GoldenDict (Supports Qt WebEngine & Qt6)."

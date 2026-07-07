@@ -238,6 +238,7 @@ MainWindow::MainWindow( Config::Class & cfg_ ):
   profile->setHttpCacheType( QWebEngineProfile::DiskHttpCache );
   profile->setPersistentStoragePath( Config::getConfigDir() + "QtWebEngine" );
   profile->setPersistentCookiesPolicy( QWebEngineProfile::AllowPersistentCookies );
+  QDir().mkpath( Config::getConfigDir() + "QtWebEngine" );
 
   localSchemeHandler     = new LocalSchemeHandler( articleNetMgr, this );
   QStringList htmlScheme = { "gdlookup", "bword", "entry", "gdinternal" };
@@ -4068,7 +4069,7 @@ void MainWindow::showTranslationFor( const QString & word, unsigned inGroup, con
 
   unsigned group = inGroup;
   if ( group == 0 ) {
-    group = groupInstances.empty() ? 0 : groupInstances[ groupList->currentIndex() ].id;
+    group = view ? view->getCurrentGroupId() : 0;
   }
 
   view->showDefinition( word, group, scrollTo );
@@ -5525,6 +5526,15 @@ void MainWindow::openWebsiteInNewTab( QString name, QString url, QString dictId,
     if ( cfg.preferences.openWebsitesInPanel ) {
       addPanel( view );
     }
+  }
+
+  // Inherit the group from the source (currently focused) article view so the
+  // website tab stays grouped with the dictionary it was opened from.
+  if ( auto * src = getCurrentArticleView() ) {
+    if ( src->isWebsite() )
+      src = getFirstNonWebSiteArticleView();
+    if ( src )
+      view->setCurrentGroupId( src->getCurrentGroupId() );
   }
 
   // Set the current word for the website view
