@@ -218,7 +218,6 @@ jobs:
 
   release:
     needs: [build-linux, build-macOS, build-Windows, setup]
-    if: ${{ !cancelled() }}
     permissions:
       contents: write
     runs-on: ubuntu-24.04
@@ -243,23 +242,20 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          LAST_NUM=$(gh release list --repo ${{ github.repository }} --limit 100 \
-            | grep -oE 'version-wy-fork-[0-9]+' | grep -oE '[0-9]+' | sort -n | tail -1)
-          if [ -z "$LAST_NUM" ]; then
-            NEXT=1
-          else
-            NEXT=$(( LAST_NUM + 1 ))
-          fi
-          echo "releaseName=version-wy-fork-$NEXT" >> "$GITHUB_OUTPUT"
-          if [ -n "$LAST_NUM" ]; then
-            echo "previousRelease=version-wy-fork-$LAST_NUM" >> "$GITHUB_OUTPUT"
+          VERSION=$(xargs < VERSION 2>/dev/null | sed 's/^v//')
+          STAMP=$(date +%Y%m%d%H%M)
+          echo "releaseName=v${VERSION}-wy-${STAMP}" >> "$GITHUB_OUTPUT"
+          PREV=$(gh release list --repo ${{ github.repository }} --limit 1 --json tagName --jq '.[0].tagName // empty')
+          if [ -n "$PREV" ]; then
+            echo "previousRelease=$PREV" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Generate release notes
         run: |
           PREV='${{ steps.rel.outputs.previousRelease }}'
           if [ -z "$PREV" ]; then
-            NOTES="Initial release."
+            NOTES="Last 10 commits:"$'\n'$'\n'
+            NOTES+=$(git log --oneline -n 10 | sed 's/^/- /')
           else
             NOTES="**Changes since $PREV:**"$'\n'$'\n'
             NOTES+=$(git log --oneline --no-merges "$PREV..HEAD" | sed 's/^/- /')
