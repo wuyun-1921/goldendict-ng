@@ -228,36 +228,55 @@ jobs:
       - uses: actions/checkout@v6
         with:
           fetch-depth: 0
+          fetch-tags: true
           ref: ${{ needs.setup.outputs.newTag }}
 
       - uses: actions/download-artifact@v8
-        continue-on-error: true
         with:
           merge-multiple: true
 
       - name: List files
         run: ls -R
 
+      - name: Compute release name
+        id: rel
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          LAST_NUM=$(gh release list --repo ${{ github.repository }} --limit 100 \
+            | grep -oE 'version-wy-fork-[0-9]+' | grep -oE '[0-9]+' | sort -n | tail -1)
+          if [ -z "$LAST_NUM" ]; then
+            NEXT=1
+          else
+            NEXT=$(( LAST_NUM + 1 ))
+          fi
+          echo "releaseName=version-wy-fork-$NEXT" >> "$GITHUB_OUTPUT"
+          if [ -n "$LAST_NUM" ]; then
+            echo "previousRelease=version-wy-fork-$LAST_NUM" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Generate release notes
         run: |
-          LAST_TAG=$(git tag --sort=-creatordate 'v*' | grep -v -e 'chaos' -e 'vcpkg' -e '${{ env.newTag }}' | head -1)
-          if [ -z "$LAST_TAG" ]; then
+          PREV='${{ steps.rel.outputs.previousRelease }}'
+          if [ -z "$PREV" ]; then
             NOTES="Initial release."
           else
-            NOTES="**Changes since $LAST_TAG:**"$'\n'$'\n'
-            NOTES+=$(git log --oneline --no-merges "$LAST_TAG..HEAD" | sed 's/^/- /')
+            NOTES="**Changes since $PREV:**"$'\n'$'\n'
+            NOTES+=$(git log --oneline --no-merges "$PREV..HEAD" | sed 's/^/- /')
           fi
-          echo "RELEASE_NOTES<<EOF" >> "$GITHUB_ENV"
-          echo "$NOTES" >> "$GITHUB_ENV"
-          echo "EOF" >> "$GITHUB_ENV"
+          {
+            echo "RELEASE_NOTES<<EOF"
+            echo "$NOTES"
+            echo "EOF"
+          } >> "$GITHUB_ENV"
 
       - name: Create release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release create '${{ env.newTag }}' \
-            -t "Goldendict-ng WY fork ${{ env.newTag }}" \
-            --target wy-main \
+          gh release create '${{ steps.rel.outputs.releaseName }}' \
+            -t '${{ steps.rel.outputs.releaseName }}' \
+            --target "$(git rev-parse HEAD)" \
             --latest \
             --repo ${{ github.repository }} \
             --notes "$RELEASE_NOTES"
@@ -266,5 +285,10 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release upload '${{ env.newTag }}' --repo ${{ github.repository }} --clobber \
-            *.exe *.7z *.dmg *.pkg.tar.zst
+          shopt -s nullglob
+          files=( *.exe *.7z *.dmg *.pkg.tar.zst )
+          if [ ${#files[@]} -eq 0 ]; then
+            echo "::error::No release artifacts found to upload"
+            exit 1
+          fi
+          gh release upload '${{ steps.rel.outputs.releaseName }}' --repo ${{ github.repository }} --clobber "${files[@]}"
