@@ -9,6 +9,7 @@ A [goldendict-ng](https://xiaoyifang.github.io/goldendict-ng/developer/) fork wi
 - Move tabs between panels via context menu.
 - Move tab between first panel and a new panel with `Ctrl+Shift+P`.
 - Toggle panel orientation (horizontal/vertical) with `Ctrl+Shift+H`.
+- Switch focus between panels (current tab of each) with `Ctrl+Alt+Left` / `Ctrl+Alt+Right`.
 
 ### Always Query
 - Per-tab "Always Query" flag — when enabled, every word lookup also queries this tab.

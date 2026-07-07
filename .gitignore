@@ -7,6 +7,7 @@ debug/
 build/
 release/
 tmp/
+build
 
 Makefile
 Makefile.Debug

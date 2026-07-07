@@ -107,8 +107,10 @@ private:
 public:
   void showTranslation( const QString & word, const QString & windowType );
 
-private:
+ private:
 
+  /// Move keyboard focus to the current tab of the next/previous panel (offset +1 / -1, wrapping)
+  void focusAdjacentPanel( int offset );
 
   QSystemTrayIcon * trayIcon;
 
@@ -139,7 +141,7 @@ private:
   QAction escAction, focusTranslateLineAction, addTabAction, closeCurrentTabAction, closeAllTabAction,
     closeRestTabAction, switchToNextTabAction, switchToPrevTabAction, showDictBarNamesAction, toggleMenuBarAction,
     lockPanelsAction, focusHeadwordsDlgAction, focusArticleViewAction, addAllTabToFavoritesAction, togglePanelAction,
-    togglePanelOrientationAction, toggleAlwaysQueryAction;
+    togglePanelOrientationAction, toggleAlwaysQueryAction, switchToNextPanelAction, switchToPrevPanelAction;
 
   QAction useSmallIconsInToolbarsAction, useLargeIconsInToolbarsAction, useNormalIconsInToolbarsAction;
 
@@ -365,6 +367,8 @@ private slots:
   void closeRestTabs();
   void switchToNextTab();
   void switchToPrevTab();
+  void switchToNextPanel();
+  void switchToPrevPanel();
 
   void fillWindowsMenu();
 

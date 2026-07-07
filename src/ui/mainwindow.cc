@@ -169,6 +169,8 @@ MainWindow::MainWindow( Config::Class & cfg_ ):
   closeRestTabAction( this ),
   switchToNextTabAction( this ),
   switchToPrevTabAction( this ),
+  switchToNextPanelAction( this ),
+  switchToPrevPanelAction( this ),
   showDictBarNamesAction( tr( "Show Names in Dictionary &Bar" ), this ),
   toggleMenuBarAction( tr( "&Menubar" ), this ),
   lockPanelsAction( tr( "Lock Panels" ), this ),
@@ -587,6 +589,20 @@ MainWindow::MainWindow( Config::Class & cfg_ ):
   connect( &switchToPrevTabAction, &QAction::triggered, this, &MainWindow::switchToPrevTab );
 
   addAction( &switchToPrevTabAction );
+
+  switchToNextPanelAction.setShortcutContext( Qt::WidgetWithChildrenShortcut );
+  switchToNextPanelAction.setShortcut( QKeySequence( "Ctrl+Alt+Right" ) );
+
+  connect( &switchToNextPanelAction, &QAction::triggered, this, &MainWindow::switchToNextPanel );
+
+  addAction( &switchToNextPanelAction );
+
+  switchToPrevPanelAction.setShortcutContext( Qt::WidgetWithChildrenShortcut );
+  switchToPrevPanelAction.setShortcut( QKeySequence( "Ctrl+Alt+Left" ) );
+
+  connect( &switchToPrevPanelAction, &QAction::triggered, this, &MainWindow::switchToPrevPanel );
+
+  addAction( &switchToPrevPanelAction );
 
   addAllTabToFavoritesAction.setText( tr( "Add all tabs to Favorites" ) );
 
@@ -2126,6 +2142,43 @@ void MainWindow::loadSession()
     updateFoundInDictsList();
   } );
   m_sessionSaved = false;
+}
+
+void MainWindow::switchToNextPanel()
+{
+  focusAdjacentPanel( +1 );
+}
+
+void MainWindow::switchToPrevPanel()
+{
+  focusAdjacentPanel( -1 );
+}
+
+void MainWindow::focusAdjacentPanel( int offset )
+{
+  // Ordered panels: main panel first, then side panels in splitter order
+  QList< QTabWidget * > panels;
+  panels << ui.tabWidget;
+  for ( int i = 1; i < ui.panelSplitter->count(); i++ ) {
+    if ( auto * p = qobject_cast< QTabWidget * >( ui.panelSplitter->widget( i ) ) )
+      panels << p;
+  }
+
+  if ( panels.size() < 2 )
+    return;
+
+  int cur = panels.indexOf( activePanel() );
+  if ( cur < 0 )
+    cur = 0;
+  int next = cur + offset;
+  if ( next < 0 || next >= panels.size() )
+    return;
+
+  auto * target = panels.at( next );
+  if ( auto * av = qobject_cast< ArticleView * >( target->currentWidget() ) )
+    av->setFocus();
+  else
+    target->setFocus();
 }
 
 void MainWindow::togglePanel()
