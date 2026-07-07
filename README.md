@@ -1,4 +1,4 @@
-# GoldenDict-wy
+# GoldenDict-ng wy fork
 
 A [goldendict-ng](https://xiaoyifang.github.io/goldendict-ng/developer/) fork with extra features. Main dev branch is `wy-dev`.
 
