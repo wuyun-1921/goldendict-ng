@@ -55,11 +55,8 @@ _Avoid_: state, layout
 ## Workflow
 
 **wy-dev**:
-The fork's sole development branch. All changes are made here.
-_Avoid_: main, master
-
-**wy-main**:
-A release-only branch. It carries no development; releases are cut from it.
-Changes flow one-directionally from `wy-dev` into `wy-main`. Upstream merges are
-done manually and are not tracked to a fixed branch.
-_Avoid_: develop, integration
+The fork's sole branch. All development happens here, and releases are cut
+from it — either by manual dispatch from the Actions tab (no tag needed) or by
+pushing a `v*` tag. Upstream merges are done manually and are not tracked to a
+fixed branch.
+_Avoid_: main, master, wy-main

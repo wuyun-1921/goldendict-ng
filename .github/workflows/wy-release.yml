@@ -1,4 +1,4 @@
-name: WY Main Release
+name: WY Release
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -211,10 +211,10 @@ jobs:
       newTag: ${{ steps.tag.outputs.newTag }}
     steps:
       - uses: actions/checkout@v6
-      - name: Use pushed tag
+      - name: Resolve source ref
         id: tag
         run: |
-          echo "newTag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+          echo "newTag=${{ github.ref_name }}" >> $GITHUB_OUTPUT
 
   release:
     needs: [build-linux, build-macOS, build-Windows, setup]
