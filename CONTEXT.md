@@ -56,14 +56,15 @@ _Avoid_: state, layout
 
 **wy-dev**:
 The fork's sole branch. All development happens here, and releases are cut
-from it — either by manual dispatch from the Actions tab (no tag needed) or by
-pushing a `v*` tag. Upstream merges are done manually and are not tracked to a
-fixed branch.
+from it by **manual dispatch of the `WY Release` workflow from the Actions tab**
+(`workflow_dispatch`). Tags are not used to release. Upstream merges are done
+manually and are not tracked to a fixed branch.
 _Avoid_: main, master, wy-main
 
 **Release trigger**:
-The assistant must never manually create or push a `v*` tag (or otherwise
-trigger a release) on its own. Cutting a release is a human action — either the
-user dispatches the `WY Release` workflow from the Actions tab, or the user
-pushes the tag. The assistant may commit and push code to `wy-dev`, but it must
-stop short of the release tag and ask the user to trigger the release.
+Releases are triggered only by manually dispatching the `WY Release` workflow
+(`workflow_dispatch`) from the Actions tab — never by pushing a `v*` tag. The
+`v*`-tag push trigger has been removed from the workflow so tags cannot start a
+release. The assistant may commit and push code to `wy-dev`, but it must not
+start a release on its own: it asks the user to dispatch the workflow (or runs
+`gh workflow run` on the user's behalf when asked).
