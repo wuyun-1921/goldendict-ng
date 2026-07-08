@@ -1,0 +1,59 @@
+# GoldenDict-ng wy fork — Feature & Bug-avoidance Spec
+
+Purpose: a survival guide for re-implementing fork features after a rebase onto
+`upstream/staged`. It lists what the fork adds and the functional traps to not
+reintroduce. Packaging/CI notes are intentionally brief.
+
+Upstream: `xiaoyifang/goldendict-ng`, branch `staged`. Fork branch: `wy-dev`.
+Sync: selective cherry-pick; rebase/replay when possible, rewrite otherwise;
+merges only sparingly.
+
+## Fork features added
+
+- **Side-by-side Panels** (`Panel`): multiple view containers, each holding one
+  or more `Tab`s. The window always has >=1 Panel.
+- **Tab / Group model**: a Tab belongs to exactly one `Group`, which decides
+  which dictionaries answer its queries. Group is a property of the Tab,
+  independent of the Panel.
+- **Always Query**: a Tab flagged to receive every query (from any source, not
+  only the search bar) in addition to the focused Tab, answering in its own
+  Group, with color markers.
+- **Website tabs**: a Tab that displays a website dictionary, opened
+  automatically from a website-dictionary result in its Linked Tab, inheriting
+  the Linked Tab's Group. Never an Always-Query target.
+- **Muted dictionaries**: per-Group suppression; a muted dict produces no
+  results and never auto-opens a Website tab.
+- **Session persistence**: open Tabs, Panels, Always-Query flags, and collapsed
+  dictionaries restored on launch.
+- **Panel focus navigation**: `Ctrl+Alt+Left/Right` moves focus between panels.
+- **Cross-panel navigation**: `jumpToDictionary` and `Ctrl+/-` zoom target the
+  focused view's panel and all panels respectively.
+- **found-in-dictionaries side panel**: synced to focus, with website fallback.
+- **Persistent website data**: custom `QWebEngineProfile` keeps cookies,
+  localStorage, IndexedDB across restarts.
+- **Reverse scroll-zone toggle**: swap peripheral/middle scroll behavior.
+- **Release pipeline**: `wy-release.yml`, Arch `PKGBUILD`, version `26.7.0`.
+
+## Bugs to avoid (functional traps)
+
+1. Website tab must inherit its Linked Tab's Group at open time via `groupId`
+   threaded through `websiteDictionarySignal` -> `openWebsiteInNewTab`, with
+   `GlobalBroadcaster::websiteRequestGroup` set around `getArticle`.
+2. **Website tab Group must refresh on every query, not freeze at creation.**
+   A Website tab is matched by `dictId`, so once opened it is *reused* by any
+   later query hitting that dictionary. If `setCurrentGroupId( groupId )` runs
+   only inside the `view == nullptr` (creation) branch, the tab stays on the
+   originating tab's Group forever. Symptom: mute the website dict in Tab A,
+   enable it in Tab B, query in B -> the Website tab still reports Group A, so
+   its muted/enabled state and subsequent lookups are wrong. Fix: call
+   `setCurrentGroupId( groupId )` on both creation and reuse, in both
+   `MainWindow::openWebsiteInNewTab` and `ScanPopup::openWebsiteInNewTab`.
+3. Session restore must reset `contentLoaded` + tab title on window reuse,
+   else restored tabs render blank/duplicate.
+4. Focus change must refresh the found-in-dictionaries list and Always-Query
+   color markers.
+5. `jumpToDictionary` must target the focused view's panel, not only main.
+6. Refresh `lastFocusedArticleView` on new-tab creation before using it.
+7. Forward history/navigation (`showTranslationFor`) to Always-Query tabs.
+8. Route `Ctrl+/-` zoom through MainWindow to all panels.
+9. Use a custom `QWebEngineProfile` so website cookies/storage persist.
