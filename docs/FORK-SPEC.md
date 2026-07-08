@@ -56,4 +56,16 @@ merges only sparingly.
 6. Refresh `lastFocusedArticleView` on new-tab creation before using it.
 7. Forward history/navigation (`showTranslationFor`) to Always-Query tabs.
 8. Route `Ctrl+/-` zoom through MainWindow to all panels.
-9. Use a custom `QWebEngineProfile` so website cookies/storage persist.
+ 9. Use a custom `QWebEngineProfile` so website cookies/storage persist.
+ 10. **Split-scroll zones: the percent pref is not optional and the binding must
+     wait for the web channel.** `dictPanelScrollZone` (percent width of the
+     middle band) was only ever read/written to config and the prefs UI — the
+     JS in `gd-builtin.js` hardcoded the middle band to 0.25..0.75, so the pref
+     was inert ("always 50%"). The reverse toggle also failed because the JS
+     read `articleview.reverseScrollZone` at script-load time, before the web
+     channel object existed, so the connect was skipped and `reversed` stayed
+     false. Fix: add a `scrollZonePercent` Q_PROPERTY on `ArticleViewAgent`
+     (mirror `reverseScrollZone`), set it from `cfg.preferences.dictPanelScrollZone`
+     in `createArticleView` and in the `editPreferences` per-view loop, and in
+     JS derive the middle band from the percent and `setTimeout`-retry
+     `bindArticleView` until `articleview` is defined.
