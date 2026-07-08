@@ -60,3 +60,10 @@ from it — either by manual dispatch from the Actions tab (no tag needed) or by
 pushing a `v*` tag. Upstream merges are done manually and are not tracked to a
 fixed branch.
 _Avoid_: main, master, wy-main
+
+**Release trigger**:
+The assistant must never manually create or push a `v*` tag (or otherwise
+trigger a release) on its own. Cutting a release is a human action — either the
+user dispatches the `WY Release` workflow from the Actions tab, or the user
+pushes the tag. The assistant may commit and push code to `wy-dev`, but it must
+stop short of the release tag and ask the user to trigger the release.
