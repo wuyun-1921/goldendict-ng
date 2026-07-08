@@ -93,7 +93,7 @@ public slots:
   void editGroupRequested();
 
   void setGroupByName( const QString & name ) const;
-  void openWebsiteInNewTab( QString name, QString url, QString dictId, bool isPopup, QString word = QString() );
+  void openWebsiteInNewTab( QString name, QString url, QString dictId, bool isPopup, QString word, unsigned groupId );
 
 #ifdef WITH_X11
   void showEngagePopup();

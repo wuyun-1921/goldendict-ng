@@ -518,11 +518,15 @@ void ArticleRequest::altSearchFinished()
           bodyRequests.push_back( r );
         }
         else {
+          // Expose the originating tab's group so a website dictionary can
+          // report which tab opened it. Reset after the (synchronous) emit.
+          GlobalBroadcaster::instance()->setWebsiteRequestGroup( group.id );
           sptr< Dictionary::DataRequest > r = activeDict->getArticle(
             wordStd,
             altsVector,
             Text::removeTrailingZero( contexts.value( QString::fromStdString( activeDict->getId() ) ) ),
             ignoreDiacritics );
+          GlobalBroadcaster::instance()->setWebsiteRequestGroup( 0 );
 
           connect( r.get(), &Dictionary::Request::finished, this, &ArticleRequest::bodyFinished, Qt::QueuedConnection );
 

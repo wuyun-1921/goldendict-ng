@@ -1353,7 +1353,7 @@ ArticleView * ScanPopup::findArticleViewByDictId( const QString & dictId )
   return nullptr;
 }
 
-void ScanPopup::openWebsiteInNewTab( QString name, QString url, QString dictId, bool isPopup, QString word )
+void ScanPopup::openWebsiteInNewTab( QString name, QString url, QString dictId, bool isPopup, QString word, unsigned groupId )
 {
   if ( !isVisible() ) {
     return;
@@ -1366,11 +1366,12 @@ void ScanPopup::openWebsiteInNewTab( QString name, QString url, QString dictId, 
   // Look for an existing tab with the same dictionary id
   for ( int i = 0; i < tabWidget->count(); ++i ) {
     if ( auto view = qobject_cast< ArticleView * >( tabWidget->widget( i ) ) ) {
-      if ( view->isWebsite() && view->getActiveArticleId() == dictId ) {
+       if ( view->isWebsite() && view->getActiveArticleId() == dictId ) {
         // Set the current word for the existing website view
         if ( !word.isEmpty() ) {
           view->setCurrentWord( word );
         }
+        view->setCurrentGroupId( groupId );
         view->load( url, name );
         // Truncate long website names for tab labels
         const int maxTabTitleLength = 30;
@@ -1382,12 +1383,13 @@ void ScanPopup::openWebsiteInNewTab( QString name, QString url, QString dictId, 
   }
 
   auto view = new ArticleView( tabWidget,
-                               articleNetMgr,
-                               true,
-                               cfg,
-                               translateBox->translateLine(),
-                               dictionaryBar.toggleViewAction(),
-                               groupList->getCurrentGroup() );
+                                articleNetMgr,
+                                true,
+                                cfg,
+                                translateBox->translateLine(),
+                                dictionaryBar.toggleViewAction(),
+                                groupId );
+
 
   view->setWebsite( true );
   view->setWebsiteHost( QUrl( url ).host() );

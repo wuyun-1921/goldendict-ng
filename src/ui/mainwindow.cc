@@ -5559,7 +5559,7 @@ void MainWindow::showFTSIndexingName( const QString & name )
   }
 }
 
-void MainWindow::openWebsiteInNewTab( QString name, QString url, QString dictId, bool isPopup, QString word )
+void MainWindow::openWebsiteInNewTab( QString name, QString url, QString dictId, bool isPopup, QString word, unsigned groupId )
 {
   if ( isPopup ) {
     return;
@@ -5581,14 +5581,11 @@ void MainWindow::openWebsiteInNewTab( QString name, QString url, QString dictId,
     }
   }
 
-  // Inherit the group from the source (currently focused) article view so the
-  // website tab stays grouped with the dictionary it was opened from.
-  if ( auto * src = getCurrentArticleView() ) {
-    if ( src->isWebsite() )
-      src = getFirstNonWebSiteArticleView();
-    if ( src )
-      view->setCurrentGroupId( src->getCurrentGroupId() );
-  }
+  // Always adopt the group of the query that triggered this result. A website
+  // tab is matched by dictId, so a later query from a different tab/group reuses
+  // it; freezing the group at creation would leave it stuck on the originating
+  // tab's group after the dictionary is muted there and enabled elsewhere.
+  view->setCurrentGroupId( groupId );
 
   // Set the current word for the website view
   if ( !word.isEmpty() ) {

@@ -44,6 +44,21 @@ class GlobalBroadcaster: public QObject
 public:
   std::atomic_bool is_popup;
 
+  /// Group id of the article request currently generating its body. Set by
+  /// ArticleRequest right before a dictionary's getArticle() runs so that a
+  /// website dictionary can report which tab (group) opened it. Read during
+  /// the synchronous websiteDictionarySignal emission; reset afterwards.
+  unsigned websiteRequestGroup = 0;
+
+  void setWebsiteRequestGroup( unsigned g )
+  {
+    websiteRequestGroup = g;
+  }
+  unsigned getWebsiteRequestGroup() const
+  {
+    return websiteRequestGroup;
+  }
+
   void setConfig( Config::Class * _config );
   Config::Class * getConfig() const;
   void setAudioPlayer( const AudioPlayerPtr * _audioPlayer );
@@ -93,7 +108,7 @@ signals:
 
   void indexingDictionary( QString );
 
-  void websiteDictionarySignal( QString, QString, QString, bool, QString );
+  void websiteDictionarySignal( QString, QString, QString, bool, QString, unsigned );
 
   void ftsStateChanged();
 
