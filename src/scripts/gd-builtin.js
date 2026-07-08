@@ -206,8 +206,18 @@ if (
 
 // Split-scroll zone: peripheral scrolls page, middle scrolls article.
 // When reversed: peripheral scrolls article, middle scrolls page.
+// The middle band width is `scrollZonePercent` percent of the panel.
 (function() {
   var reversed = false;
+  var zonePercent = 50;
+
+  function middleHalf() {
+    // Half-width of the middle band as a fraction of panel width.
+    var p = zonePercent;
+    if ( p < 0 ) p = 0;
+    if ( p > 100 ) p = 100;
+    return ( p / 2 ) / 100;
+  }
 
   function scrollArticle(article, e) {
     const atTop    = article.scrollTop <= 0 && e.deltaY < 0;
@@ -236,7 +246,8 @@ if (
       var rect = article.getBoundingClientRect();
       var relX = (e.clientX - rect.left) / rect.width; // 0..1 relative position
 
-      var inMiddle = relX >= 0.25 && relX <= 0.75;
+      var half = middleHalf();
+      var inMiddle = relX >= ( 0.5 - half ) && relX <= ( 0.5 + half );
       // reversed: middle <-> peripheral swapped
       if (reversed) inMiddle = !inMiddle;
 
@@ -247,23 +258,31 @@ if (
     }, { passive: false });
   }
 
-  // Listen for C++ reverse toggle signal
-  try {
-    if (typeof articleview !== 'undefined') {
+  // Bind to the C++ articleview object once the web channel is ready. The object
+  // may not exist when this script first runs, so retry until it appears.
+  function bindArticleView() {
+    if (typeof articleview === 'undefined') {
+      setTimeout(bindArticleView, 50);
+      return;
+    }
+    try {
       if (articleview.reverseScrollZone !== undefined)
-        reversed = articleview.reverseScrollZone;
+        reversed = !!articleview.reverseScrollZone;
       if (typeof articleview.reverseScrollZoneChanged !== 'undefined') {
         articleview.reverseScrollZoneChanged.connect(function(val) {
-          reversed = val;
+          reversed = !!val;
         });
       }
-    }
-  } catch(e) {}
-
-  // Set up when DOM is ready
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', setupScrollZones);
-  } else {
-    setupScrollZones();
+      if (articleview.scrollZonePercent !== undefined)
+        zonePercent = articleview.scrollZonePercent;
+      if (typeof articleview.scrollZonePercentChanged !== 'undefined') {
+        articleview.scrollZonePercentChanged.connect(function(val) {
+          zonePercent = val;
+        });
+      }
+    } catch (e) {}
   }
+
+  setupScrollZones();
+  bindArticleView();
 })();

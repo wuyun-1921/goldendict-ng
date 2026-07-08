@@ -261,6 +261,7 @@ public:
   QSet< QString > collapsedDicts;
 
   void setReverseScrollZone( bool reversed );
+  void setScrollZonePercent( int percent );
 
   /// Returns whether this view is for website browsing
   bool isWebsite() const
@@ -523,21 +524,27 @@ class ArticleViewAgent: public QObject
 {
   Q_OBJECT
   Q_PROPERTY( bool reverseScrollZone READ reverseScrollZone WRITE setReverseScrollZone NOTIFY reverseScrollZoneChanged )
+  Q_PROPERTY( int scrollZonePercent READ scrollZonePercent WRITE setScrollZonePercent NOTIFY scrollZonePercentChanged )
   ArticleView * articleView;
 
   bool m_reverseScrollZone = false;
+  int m_scrollZonePercent = 50;
 
-public:
+ public:
   explicit ArticleViewAgent( ArticleView * articleView );
 
   bool reverseScrollZone() const { return m_reverseScrollZone; }
   void setReverseScrollZone( bool reversed );
 
-public slots:
+  int scrollZonePercent() const { return m_scrollZonePercent; }
+  void setScrollZonePercent( int percent );
+
+ public slots:
   Q_INVOKABLE void onJsActiveArticleChanged( const QString & id );
   Q_INVOKABLE void linkClickedInHtml( const QUrl & );
   Q_INVOKABLE void collapseInHtml( const QString & dictId, bool on = true ) const;
 
-signals:
+ signals:
   void reverseScrollZoneChanged( bool reversed );
+  void scrollZonePercentChanged( int percent );
 };

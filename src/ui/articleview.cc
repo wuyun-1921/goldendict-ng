@@ -1445,6 +1445,12 @@ void ArticleView::setReverseScrollZone( bool reversed )
     agent->setReverseScrollZone( reversed );
 }
 
+void ArticleView::setScrollZonePercent( int percent )
+{
+  if ( agent )
+    agent->setScrollZonePercent( percent );
+}
+
 void ArticleView::back()
 {
   // Don't allow navigating back to page 0, which is usually the initial
@@ -2562,6 +2568,15 @@ void ArticleViewAgent::setReverseScrollZone( bool reversed )
   if ( m_reverseScrollZone != reversed ) {
     m_reverseScrollZone = reversed;
     emit reverseScrollZoneChanged( reversed );
+  }
+}
+
+void ArticleViewAgent::setScrollZonePercent( int percent )
+{
+  percent = qBound( 0, percent, 100 );
+  if ( m_scrollZonePercent != percent ) {
+    m_scrollZonePercent = percent;
+    emit scrollZonePercentChanged( percent );
   }
 }
 

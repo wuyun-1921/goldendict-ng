@@ -2928,6 +2928,7 @@ ArticleView * MainWindow::createArticleView()
   view->setSelectionBySingleClick( cfg.preferences.selectWordBySingleClick );
   view->setZoomFactor( cfg.preferences.zoomFactor );
   view->setReverseScrollZone( cfg.preferences.reverseScrollZone );
+  view->setScrollZonePercent( cfg.preferences.dictPanelScrollZone );
   return view;
 }
 
@@ -3409,6 +3410,8 @@ void MainWindow::editPreferences()
       auto & view = dynamic_cast< ArticleView & >( *( ui.tabWidget->widget( x ) ) );
 
       view.setSelectionBySingleClick( p.selectWordBySingleClick );
+      view.setReverseScrollZone( p.reverseScrollZone );
+      view.setScrollZonePercent( p.dictPanelScrollZone );
       view.syncBackgroundColorWithCfgDarkReader();
       if ( needReload ) {
         view.reload();
