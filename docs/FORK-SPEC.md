@@ -64,8 +64,16 @@ merges only sparingly.
      was inert ("always 50%"). The reverse toggle also failed because the JS
      read `articleview.reverseScrollZone` at script-load time, before the web
      channel object existed, so the connect was skipped and `reversed` stayed
-     false. Fix: add a `scrollZonePercent` Q_PROPERTY on `ArticleViewAgent`
+     false. Fix: add a      `scrollZonePercent` Q_PROPERTY on `ArticleViewAgent`
      (mirror `reverseScrollZone`), set it from `cfg.preferences.dictPanelScrollZone`
      in `createArticleView` and in the `editPreferences` per-view loop, and in
      JS derive the middle band from the percent and `setTimeout`-retry
      `bindArticleView` until `articleview` is defined.
+ 11. **Always Query must receive context-menu "Look up [selection]".** The
+     article context-menu lookup (`lookupSelection` / `lookupSelectionGr` in
+     `ArticleView::contextMenuRequested`) called `showDefinition()` directly and
+     never emitted `wordLookedUp`, so `MainWindow::forwardToAlwaysQueryTabs`
+     (wired to `ArticleView::wordLookedUp`) never fired and Always-Query tabs
+     stayed silent. Fix: emit `wordLookedUp( this, word, group, QString() )`
+     after the `showDefinition()` call in those two branches, mirroring the
+     `gdlookup`/`bword` link-click path.
