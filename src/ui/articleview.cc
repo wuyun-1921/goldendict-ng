@@ -1773,6 +1773,7 @@ void ArticleView::contextMenuRequested( const QPoint & pos )
     }
     else if ( result == lookupSelection ) {
       showDefinition( text, getGroup( webview->url() ), getCurrentArticle() );
+      emit wordLookedUp( this, text, getGroup( webview->url() ), QString() );
     }
     else if ( result == saveBookmark ) {
       emit saveBookmarkSignal( text.left( 60 ) );
@@ -1783,6 +1784,7 @@ void ArticleView::contextMenuRequested( const QPoint & pos )
     }
     else if ( result == lookupSelectionGr && currentGroupId ) {
       showDefinition( selectedText, currentGroupId, QString() );
+      emit wordLookedUp( this, selectedText, currentGroupId, QString() );
     }
     else if ( result == addWordToHistoryAction ) {
       emit forceAddWordToHistory( selectedText );
