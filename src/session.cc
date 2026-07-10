@@ -1,4 +1,5 @@
 #include "session.hh"
+#include <QDebug>
 #include <QFile>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -45,7 +46,11 @@ bool Session::save( const SessionData & data, const QString & filePath )
     return false;
   file.write( doc.toJson( QJsonDocument::Compact ) );
   file.close();
-  return file.error() == QFile::NoError;
+  if ( file.error() != QFile::NoError ) {
+    qDebug() << "saveSession: write error for" << filePath << ":" << file.errorString();
+    return false;
+  }
+  return true;
 }
 
 SessionData Session::load( const QString & filePath )
@@ -53,18 +58,24 @@ SessionData Session::load( const QString & filePath )
   SessionData data;
 
   QFile file( filePath );
-  if ( !file.open( QIODevice::ReadOnly ) )
+  if ( !file.open( QIODevice::ReadOnly ) ) {
+    qDebug() << "loadSession: cannot open session file:" << filePath;
     return data;
+  }
 
   QByteArray raw = file.readAll();
   file.close();
-  if ( raw.isEmpty() )
+  if ( raw.isEmpty() ) {
+    qDebug() << "loadSession: empty session file:" << filePath;
     return data;
+  }
 
   QJsonParseError err;
   QJsonDocument doc = QJsonDocument::fromJson( raw, &err );
-  if ( err.error != QJsonParseError::NoError || !doc.isObject() )
+  if ( err.error != QJsonParseError::NoError || !doc.isObject() ) {
+    qDebug() << "loadSession: JSON parse error in" << filePath << ":" << err.errorString();
     return data;
+  }
 
   QJsonObject root = doc.object();
 
