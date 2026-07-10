@@ -198,14 +198,14 @@ std::string ArticleMaker::makeHtmlHeader( const QString & word, const QString & 
     result += fmt::format( FMT_COMPILE( R"(<script src="bres://user/{}" defer></script>)" ), userJsFile.value() );
   }
 
-  // Add overflow-y for scroll zones (always) and max-height if limit enabled
-  result += QString( R"(<style>.gdarticlebody{overflow-y:auto;})" ).toStdString();
+  // Dict panel height limit: only when enabled. Both overflow and max-height
+  // are gated together, otherwise every article becomes a scroll container and
+  // breaks dictionary rendering (e.g. mdict font handling in Qt WebEngine).
   if ( cfg.dictPanelEnabled ) {
-    result += QString( R"(:root{--gd-panel-height:%1%2;}.gdarticlebody{max-height:var(--gd-panel-height);})" )
+    result += QString( R"(<style>.gdarticlebody{overflow-y:auto;}:root{--gd-panel-height:%1%2;}.gdarticlebody{max-height:var(--gd-panel-height);}</style>)" )
                 .arg( QString::number( cfg.dictPanelMaxHeight ), cfg.dictPanelHeightUnit )
                 .toStdString();
   }
-  result += "</style>";
 
   result += "</head><body>";
 
