@@ -1,6 +1,7 @@
 /* This file is (c) 2008-2012 Konstantin Isakov <ikm@goldendict.org>
  * Part of GoldenDict. Licensed under GPLv3 or later, see the LICENSE file */
 
+#include "article_injections.hh"
 #include "article_maker.hh"
 #include "config.hh"
 #include "folding.hh"
@@ -198,37 +199,9 @@ std::string ArticleMaker::makeHtmlHeader( const QString & word, const QString & 
     result += fmt::format( FMT_COMPILE( R"(<script src="bres://user/{}" defer></script>)" ), userJsFile.value() );
   }
 
-  // Limit each dictionary entry's displayed height ("Articles Extra" feature).
-  // Gated behind entryHeightLimit; otherwise every article becomes a scroll
-  // container and breaks dictionary rendering (e.g. mdict font handling in
-  // Qt WebEngine).
-  if ( cfg.entryHeightLimit ) {
-    // Limit each dictionary entry's height. Robust against four causes of
-    // spurious scrollbar (FORK-SPEC #13):
-    //  1. Last block's margin-bottom trapped in BFC → zeroed.
-    //  2. Last block's padding-bottom trapped in BFC → zeroed.
-    //  3. Trailing empty sibling (<br>/clear <div>) blocking :last-child → hidden.
-    //  4. Chromium compositor ghost-scroll: even with scrollHeight==clientHeight,
-    //     overflow-y:auto can allocate a tiny scroll layer → use hidden by default,
-    //     switch to auto only when scrollHeight actually exceeds clientHeight.
-    // Additionally, a 16px soft cap absorbs sub-pixel/micro overflow.
-    result += QString( R"(<style>.gdarticlebody{overflow-y:hidden;}:root{--gd-entry-height:%1px;}.gdarticlebody{max-height:calc(var(--gd-entry-height) + 16px);}.gdarticlebody :last-child{margin-bottom:0 !important;padding-bottom:0 !important;}.gdarticlebody br:last-child,.gdarticlebody div:last-child:empty{display:none !important;}</style>)" )
-                .arg( QString::number( cfg.entryMaxHeight ) )
-                .toStdString();
-
-    result += R"(<script>
-(function(){
-function fix(){var els=document.querySelectorAll('.gdarticlebody'),i;
-for(i=0;i<els.length;i++){var e=els[i];
-e.style.overflowY=e.scrollHeight>e.clientHeight?'auto':'hidden';}}
-requestAnimationFrame(function(){requestAnimationFrame(function(){
-fix();
-window.addEventListener('load',fix);
-if(document.fonts&&document.fonts.ready)document.fonts.ready.then(fix);
-});});
-})();
-</script>)";
-  }
+  // Fork feature injections (style + script tags)
+  for ( const auto & inj : articleInjections( cfg ) )
+    result += inj.tag;
 
   result += "</head><body>";
 
