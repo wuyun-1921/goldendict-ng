@@ -58,24 +58,72 @@ QVector< ArticleView * > Panels::allViews() const
   return result;
 }
 
+QVector< QTabWidget * > Panels::allPanels() const
+{
+  QVector< QTabWidget * > result;
+  for ( int i = 0; i < m_splitter->count(); i++ ) {
+    auto * panel = qobject_cast< QTabWidget * >( m_splitter->widget( i ) );
+    if ( panel )
+      result.append( panel );
+  }
+  return result;
+}
+
 void Panels::add( ArticleView * av, int targetPanelIdx )
 {
+  QString title = av->windowTitle();
+
+  // Remove from current panel
+  QTabWidget * currentPanel = nullptr;
+  int currentPanelIdx       = -1;
+  int prevCount             = m_splitter->count();
+  for ( int i = 0; i < m_splitter->count(); i++ ) {
+    auto * panel = qobject_cast< QTabWidget * >( m_splitter->widget( i ) );
+    if ( !panel )
+      continue;
+    int idx = panel->indexOf( av );
+    if ( idx >= 0 ) {
+      if ( title.isEmpty() )
+        title = panel->tabText( idx );
+      panel->removeTab( idx );
+      currentPanel    = panel;
+      currentPanelIdx = i;
+      break;
+    }
+  }
+  if ( title.isEmpty() )
+    title = tr( "(untitled)" );
+
+  // Clean up empty side panel (not main)
+  if ( currentPanel && currentPanel != m_splitter->widget( 0 ) && currentPanel->count() == 0 ) {
+    delete currentPanel;
+    prevCount--;
+    if ( currentPanelIdx < targetPanelIdx )
+      targetPanelIdx--;
+  }
+
+  // Target: main panel is index 0
+  QTabWidget * target = nullptr;
   if ( targetPanelIdx >= m_splitter->count() ) {
     auto * panel = new QTabWidget( m_splitter );
     panel->setDocumentMode( true );
     m_splitter->addWidget( panel );
-    panel->addTab( av, av->getCurrentWord() );
-    panel->setCurrentWidget( av );
-    distributeSizes();
-    emit panelCountChanged( m_splitter->count() );
-    return;
+    target = panel;
   }
-
-  auto * panel = qobject_cast< QTabWidget * >( m_splitter->widget( targetPanelIdx ) );
-  if ( !panel )
+  else {
+    target = qobject_cast< QTabWidget * >( m_splitter->widget( targetPanelIdx ) );
+  }
+  if ( !target )
     return;
-  panel->addTab( av, av->getCurrentWord() );
-  panel->setCurrentWidget( av );
+
+  target->addTab( av, title );
+  target->setCurrentWidget( av );
+  av->setFocus();
+
+  distributeSizes();
+
+  if ( m_splitter->count() != prevCount )
+    emit panelCountChanged( m_splitter->count() );
 }
 
 void Panels::remove( ArticleView * av )

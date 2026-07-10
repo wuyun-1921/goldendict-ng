@@ -18,6 +18,7 @@
 #include "instances.hh"
 #include "article_maker.hh"
 #include "ui/articleview.hh"
+#include "panels.hh"
 #include "wordfinder.hh"
 #include "dictionarybar.hh"
 #include "history.hh"
@@ -111,7 +112,6 @@ public:
  private:
 
   /// Move keyboard focus to the current tab of the next/previous panel (offset +1 / -1, wrapping)
-  void focusAdjacentPanel( int offset );
 
   QSystemTrayIcon * trayIcon;
 
@@ -171,6 +171,7 @@ public:
   // List that contains indexes of tabs arranged in a most-recently-used order
   QList< QWidget * > mruList;
   Config::Class & cfg;
+  Panels * m_panels = nullptr;
   History history;
   DictionaryBar dictionaryBar;
   vector< sptr< Dictionary::Class > > dictionaries;

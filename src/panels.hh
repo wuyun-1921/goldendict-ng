@@ -29,6 +29,9 @@ public:
   /// Return all ArticleViews across all panels.
   QVector< ArticleView * > allViews() const;
 
+  /// Return all QTabWidget panels (including main panel at index 0).
+  QVector< QTabWidget * > allPanels() const;
+
   /// Add av to the panel at targetPanelIdx. Creates a new panel if targetPanelIdx >= count().
   void add( ArticleView * av, int targetPanelIdx );
 

@@ -279,6 +279,11 @@ MainWindow::MainWindow( Config::Class & cfg_ ):
   ui.panelSplitter->setVisible( true );               // always visible
   ui.centralLayout->addWidget( ui.panelSplitter );
 
+  m_panels = new Panels( ui.panelSplitter, this );
+  connect( m_panels, &Panels::panelCountChanged, this, [this]( int /*count*/ ) {
+    updateBackForwardButtons();
+  } );
+
   // Set own gesture recognizers
 #ifndef Q_OS_MAC
   Gestures::registerRecognizers();
@@ -1411,90 +1416,38 @@ MainWindow::~MainWindow()
   Epwing::finalize();
 #endif
   delete ui.historyPaneWidget; // This should be deleted before shared History Object.
+  delete m_panels;
 }
 
 void MainWindow::addPanel( ArticleView * av, int targetPanelIdx )
 {
-  // Save title before removing from current location
-  QString title             = av->windowTitle();
-  QTabWidget * currentPanel = nullptr;
-  int tabIdx                = -1;
-
-  // Check main tab widget
-  tabIdx = ui.tabWidget->indexOf( av );
-  if ( tabIdx >= 0 ) {
-    if ( title.isEmpty() )
-      title = ui.tabWidget->tabText( tabIdx );
-    currentPanel = ui.tabWidget;
-  }
-  else {
-    // Check side panels
-    currentPanel = panelForView( av );
-    if ( currentPanel ) {
-      tabIdx = currentPanel->indexOf( av );
-      if ( title.isEmpty() )
-        title = currentPanel->tabText( tabIdx );
-    }
-  }
-  if ( title.isEmpty() )
-    title = tr( "(untitled)" );
-
-  // Remove from current panel
-  if ( currentPanel && tabIdx >= 0 )
-    currentPanel->removeTab( tabIdx );
-
-  // Auto-create empty tab if main panel just became empty
-  if ( currentPanel == ui.tabWidget && ui.tabWidget->count() == 0 ) {
-    createNewTab( true, tr( "(untitled)" ) );
-  }
-
-  // Determine target panel
-  QTabWidget * target = nullptr;
   if ( targetPanelIdx < 0 ) {
-    // "Move to New Panel" — always create fresh panel
-    target = createNewSidePanel();
-  }
-  else if ( targetPanelIdx == 0 ) {
-    target = ui.tabWidget;
-  }
-  else {
-    target = qobject_cast< QTabWidget * >( ui.panelSplitter->widget( targetPanelIdx ) );
-    if ( !target )
-      target = findOrCreateSidePanel();
+    createNewSidePanel();
+    targetPanelIdx = m_panels->count() - 1;
   }
 
-  // Add to target
-  int newIdx = target->addTab( av, title );
-  target->setCurrentIndex( newIdx );
-  updateTabTitleMarker( av );
-  av->focus();
+  bool movingFromMain = ( ui.tabWidget->indexOf( av ) >= 0 );
+  int prevMainCount    = ui.tabWidget->count();
 
-  // Clean up empty side panel
-  if ( currentPanel && currentPanel != ui.tabWidget && currentPanel->count() == 0 )
-    delete currentPanel;
+  m_panels->add( av, targetPanelIdx );
 
-  distributePanelSizes();
+  if ( movingFromMain && prevMainCount == 1 && ui.tabWidget->count() == 0 )
+    createNewTab( true, tr( "(untitled)" ) );
 }
 
 QTabWidget * MainWindow::panelForView( ArticleView * av )
 {
-  for ( int i = 1; i < ui.panelSplitter->count(); i++ ) {
-    auto * panel = qobject_cast< QTabWidget * >( ui.panelSplitter->widget( i ) );
-    if ( panel && panel->indexOf( av ) >= 0 )
-      return panel;
+  const auto panels = m_panels->allPanels();
+  for ( int i = 1; i < panels.size(); i++ ) {
+    if ( panels[ i ]->indexOf( av ) >= 0 )
+      return panels[ i ];
   }
   return nullptr;
 }
 
 QTabWidget * MainWindow::activePanel()
 {
-  auto * av = getCurrentArticleView();
-  if ( av ) {
-    auto * panel = panelForView( av );
-    if ( panel )
-      return panel;
-  }
-  return ui.tabWidget;
+  return m_panels->activePanel();
 }
 
 void MainWindow::closeTabInPanel( QTabWidget * panel, int tabIndex )
@@ -1526,7 +1479,7 @@ void MainWindow::closeTabInPanel( QTabWidget * panel, int tabIndex )
   else {
     if ( panel->count() == 0 ) {
       delete panel;
-      distributePanelSizes();
+      m_panels->distributeSizes();
     }
     if ( totalTabCount() == 0 )
       addNewTab();
@@ -1619,16 +1572,16 @@ QTabWidget * MainWindow::createPanel()
 QTabWidget * MainWindow::createNewSidePanel()
 {
   QTabWidget * panel = createPanel();
-  ui.panelSplitter->addWidget( panel );
+  m_panels->widget()->addWidget( panel );
   return panel;
 }
 
 QTabWidget * MainWindow::findOrCreateSidePanel()
 {
-  for ( int i = 1; i < ui.panelSplitter->count(); i++ ) {
-    auto * panel = qobject_cast< QTabWidget * >( ui.panelSplitter->widget( i ) );
-    if ( panel )
-      return panel;
+  const auto panels = m_panels->allPanels();
+  for ( int i = 1; i < panels.size(); i++ ) {
+    if ( panels[ i ] )
+      return panels[ i ];
   }
   return createNewSidePanel();
 }
@@ -1670,11 +1623,11 @@ void MainWindow::applyTabColors()
   for ( int i = 0; i < ui.tabWidget->count(); i++ )
     decorateTab( ui.tabWidget, i );
 
-  for ( int p = 1; p < ui.panelSplitter->count(); p++ ) {
-    auto * panel = qobject_cast< QTabWidget * >( ui.panelSplitter->widget( p ) );
-    if ( panel ) {
-      for ( int i = 0; i < panel->count(); i++ )
-        decorateTab( panel, i );
+  const auto panels = m_panels->allPanels();
+  for ( int p = 1; p < panels.size(); p++ ) {
+    if ( panels[ p ] ) {
+      for ( int i = 0; i < panels[ p ]->count(); i++ )
+        decorateTab( panels[ p ], i );
     }
   }
 }
@@ -1695,10 +1648,10 @@ void MainWindow::forwardToAlwaysQueryTabs( ArticleView * source,
   };
 
   forwardTo( ui.tabWidget );
-  for ( int p = 1; p < ui.panelSplitter->count(); p++ ) {
-    auto * panel = qobject_cast< QTabWidget * >( ui.panelSplitter->widget( p ) );
-    if ( panel )
-      forwardTo( panel );
+  const auto panels = m_panels->allPanels();
+  for ( int p = 1; p < panels.size(); p++ ) {
+    if ( panels[ p ] )
+      forwardTo( panels[ p ] );
   }
 }
 
@@ -1756,10 +1709,11 @@ void MainWindow::showTabContextMenu( QTabWidget * panel, int tabIdx, QPoint glob
   menu.addSeparator();
 
   // Move to existing panels (submenu, only if side panels exist)
-  if ( ui.panelSplitter->count() > 1 ) {
+  if ( m_panels->count() > 1 ) {
     QMenu * moveMenu = menu.addMenu( tr( "Move to Panel" ) );
-    for ( int i = 0; i < ui.panelSplitter->count(); i++ ) {
-      auto * p = qobject_cast< QTabWidget * >( ui.panelSplitter->widget( i ) );
+    const auto allPanelsList = m_panels->allPanels();
+    for ( int i = 0; i < allPanelsList.size(); i++ ) {
+      auto * p = allPanelsList[ i ];
       if ( p == panel || !p )
         continue;
       QString label        = ( i == 0 ) ? tr( "Main Panel" ) : tr( "Panel %1" ).arg( i );
@@ -1851,31 +1805,12 @@ void MainWindow::removePanel( ArticleView * av )
   if ( sourcePanel->count() == 0 )
     delete sourcePanel;
 
-  distributePanelSizes();
+  m_panels->distributeSizes();
 }
 
 void MainWindow::distributePanelSizes()
 {
-  int count = ui.panelSplitter->count();
-  if ( count == 0 )
-    return;
-
-  // All children equal stretch
-  for ( int i = 0; i < count; i++ )
-    ui.panelSplitter->setStretchFactor( i, 1 );
-
-  // Explicit initial sizes (stretch only affects resize)
-  int total =
-    ( ui.panelSplitter->orientation() == Qt::Horizontal ) ? ui.panelSplitter->width() : ui.panelSplitter->height();
-  if ( total > 0 ) {
-    QList< int > sizes;
-    for ( int i = 0; i < count; i++ )
-      sizes << total / count;
-    ui.panelSplitter->setSizes( sizes );
-  }
-
-  // Minimum width so window grows, never eats dock space
-  ui.centralWidget->setMinimumWidth( count * 200 );
+  m_panels->distributeSizes();
 }
 
 void MainWindow::saveSession()
@@ -1891,13 +1826,14 @@ void MainWindow::saveSession()
 
   SessionData data;
   data.searchBarText = ui.translateLine->text();
-  data.orientation   = ui.panelSplitter->orientation();
+  data.orientation   = m_panels->widget()->orientation();
 
   ArticleView * focusView = getCurrentArticleView();
   int activePanelIdx = 0;
 
-  for ( int p = 0; p < ui.panelSplitter->count(); p++ ) {
-    auto * panel = qobject_cast< QTabWidget * >( ui.panelSplitter->widget( p ) );
+  const auto panels = m_panels->allPanels();
+  for ( int p = 0; p < panels.size(); p++ ) {
+    auto * panel = panels[ p ];
     if ( !panel || panel->count() == 0 )
       continue;
 
@@ -1952,7 +1888,7 @@ void MainWindow::loadSession()
   if ( !data.searchBarText.isEmpty() )
     ui.translateLine->setText( data.searchBarText );
 
-  ui.panelSplitter->setOrientation( data.orientation );
+  m_panels->widget()->setOrientation( data.orientation );
 
   struct RestoreTab
   {
@@ -2020,7 +1956,7 @@ void MainWindow::loadSession()
   // Create side panels and their tabs
   for ( int p = 1; p < allPanels.size(); p++ ) {
     auto * panel     = createNewSidePanel();
-    int panelIdx     = ui.panelSplitter->count() - 1;
+    int panelIdx     = m_panels->count() - 1;
     auto & panelTabs = allPanels[ p ];
     for ( int t = 0; t < panelTabs.size(); t++ ) {
       auto & info = panelTabs[ t ];
@@ -2056,19 +1992,20 @@ void MainWindow::loadSession()
     };
   };
   connect( ui.tabWidget, &QTabWidget::currentChanged, this, makeLazyLoadHandler( ui.tabWidget ) );
-  for ( int p = 1; p < ui.panelSplitter->count(); p++ ) {
-    auto * panel = qobject_cast< QTabWidget * >( ui.panelSplitter->widget( p ) );
-    if ( panel )
-      connect( panel, &QTabWidget::currentChanged, this, makeLazyLoadHandler( panel ) );
+  auto loadPanels = m_panels->allPanels();
+  for ( int p = 1; p < loadPanels.size(); p++ ) {
+    if ( loadPanels[ p ] )
+      connect( loadPanels[ p ], &QTabWidget::currentChanged, this, makeLazyLoadHandler( loadPanels[ p ] ) );
   }
 
-  distributePanelSizes();
+  m_panels->distributeSizes();
 
   int activePanelIdx = data.activePanel;
-  if ( activePanelIdx < ui.panelSplitter->count() ) {
-    auto * activePanel = qobject_cast< QTabWidget * >( ui.panelSplitter->widget( activePanelIdx ) );
-    if ( activePanel && activePanel->count() > 0 ) {
-      auto * av = qobject_cast< ArticleView * >( activePanel->currentWidget() );
+  auto actPanels     = m_panels->allPanels();
+  if ( activePanelIdx < actPanels.size() ) {
+    auto * activePanelWidget = actPanels[ activePanelIdx ];
+    if ( activePanelWidget && activePanelWidget->count() > 0 ) {
+      auto * av = qobject_cast< ArticleView * >( activePanelWidget->currentWidget() );
       if ( av )
         av->focus();
     }
@@ -2086,39 +2023,12 @@ void MainWindow::loadSession()
 
 void MainWindow::switchToNextPanel()
 {
-  focusAdjacentPanel( +1 );
+  m_panels->focusAdjacent( 1 );
 }
 
 void MainWindow::switchToPrevPanel()
 {
-  focusAdjacentPanel( -1 );
-}
-
-void MainWindow::focusAdjacentPanel( int offset )
-{
-  // Ordered panels: main panel first, then side panels in splitter order
-  QList< QTabWidget * > panels;
-  panels << ui.tabWidget;
-  for ( int i = 1; i < ui.panelSplitter->count(); i++ ) {
-    if ( auto * p = qobject_cast< QTabWidget * >( ui.panelSplitter->widget( i ) ) )
-      panels << p;
-  }
-
-  if ( panels.size() < 2 )
-    return;
-
-  int cur = panels.indexOf( activePanel() );
-  if ( cur < 0 )
-    cur = 0;
-  int next = cur + offset;
-  if ( next < 0 || next >= panels.size() )
-    return;
-
-  auto * target = panels.at( next );
-  if ( auto * av = qobject_cast< ArticleView * >( target->currentWidget() ) )
-    av->setFocus();
-  else
-    target->setFocus();
+  m_panels->focusAdjacent( -1 );
 }
 
 void MainWindow::togglePanel()
@@ -2154,20 +2064,16 @@ void MainWindow::togglePanel()
 
 void MainWindow::togglePanelOrientation()
 {
-  if ( ui.panelSplitter->orientation() == Qt::Horizontal )
-    ui.panelSplitter->setOrientation( Qt::Vertical );
-  else
-    ui.panelSplitter->setOrientation( Qt::Horizontal );
-  distributePanelSizes();
+  m_panels->toggleOrientation();
 }
 
 int MainWindow::totalTabCount() const
 {
   int count = ui.tabWidget->count();
-  for ( int i = 1; i < ui.panelSplitter->count(); i++ ) {
-    auto * panel = qobject_cast< QTabWidget * >( ui.panelSplitter->widget( i ) );
-    if ( panel )
-      count += panel->count();
+  const auto panels = m_panels->allPanels();
+  for ( int i = 1; i < panels.size(); i++ ) {
+    if ( panels[ i ] )
+      count += panels[ i ]->count();
   }
   return count;
 }
@@ -2175,9 +2081,9 @@ int MainWindow::totalTabCount() const
 int MainWindow::panelCount() const
 {
   int count = 0;
-  for ( int i = 1; i < ui.panelSplitter->count(); i++ ) {
-    auto * panel = qobject_cast< QTabWidget * >( ui.panelSplitter->widget( i ) );
-    if ( panel && panel->count() > 0 )
+  const auto panels = m_panels->allPanels();
+  for ( int i = 1; i < panels.size(); i++ ) {
+    if ( panels[ i ] && panels[ i ]->count() > 0 )
       count++;
   }
   return count;
@@ -2190,7 +2096,7 @@ void MainWindow::addGlobalAction( QAction * action, const std::function< void() 
 
   ui.centralWidget->addAction( action );
   ui.tabWidget->addAction( action );
-  ui.panelSplitter->addAction( action );
+  m_panels->widget()->addAction( action );
   ui.dictsPane->addAction( action );
   ui.searchPaneWidget->addAction( action );
   ui.favoritesPane->addAction( action );
@@ -3021,8 +2927,9 @@ void MainWindow::titleChanged( ArticleView * view, const QString & title )
   }
 
   // Also update title in panel tab widgets
-  for ( int p = 0; p < ui.panelSplitter->count(); p++ ) {
-    auto * panel = qobject_cast< QTabWidget * >( ui.panelSplitter->widget( p ) );
+  const auto panels = m_panels->allPanels();
+  for ( int p = 0; p < panels.size(); p++ ) {
+    auto * panel = panels[ p ];
     if ( !panel )
       continue;
     int pidx = panel->indexOf( view );
@@ -3151,8 +3058,9 @@ void MainWindow::updateFoundInDictsList()
   // If current view is a website, rebuild from a non-website tab
   if ( view->isWebsite() ) {
     // Find a non-website tab to source the dictionary list
-    for ( int p = 0; p < ui.panelSplitter->count(); p++ ) {
-      auto * panel = qobject_cast< QTabWidget * >( ui.panelSplitter->widget( p ) );
+    const auto panels = m_panels->allPanels();
+    for ( int p = 0; p < panels.size(); p++ ) {
+      auto * panel = panels[ p ];
       if ( !panel )
         continue;
       for ( int i = 0; i < panel->count(); i++ ) {
@@ -3710,8 +3618,9 @@ bool MainWindow::eventFilter( QObject * obj, QEvent * ev )
     auto event = dynamic_cast< QMouseEvent * >( ev );
 
     // Side panel tab bar clicks: track last focused view, handle context/close
-    for ( int i = 1; i < ui.panelSplitter->count(); i++ ) {
-      auto * panel = qobject_cast< QTabWidget * >( ui.panelSplitter->widget( i ) );
+    const auto sidePanels = m_panels->allPanels();
+    for ( int i = 1; i < sidePanels.size(); i++ ) {
+      auto * panel = sidePanels[ i ];
       if ( panel && obj == panel->tabBar() ) {
         int tabIdx = panel->tabBar()->tabAt( event->pos() );
         if ( tabIdx < 0 )
@@ -4732,10 +4641,10 @@ void MainWindow::scaleArticlesByCurrentZoomFactor()
   };
 
   scalePanel( ui.tabWidget );
-  for ( int p = 1; p < ui.panelSplitter->count(); p++ ) {
-    auto * panel = qobject_cast< QTabWidget * >( ui.panelSplitter->widget( p ) );
-    if ( panel )
-      scalePanel( panel );
+  const auto scalePanels = m_panels->allPanels();
+  for ( int p = 1; p < scalePanels.size(); p++ ) {
+    if ( scalePanels[ p ] )
+      scalePanel( scalePanels[ p ] );
   }
 
   if ( scanPopup ) {
@@ -4890,8 +4799,9 @@ ArticleView * MainWindow::findArticleViewByDictId( const QString & dictId )
       }
     }
     // Also search panel tab widgets
-    for ( int p = 0; p < ui.panelSplitter->count(); p++ ) {
-      auto * panel = qobject_cast< QTabWidget * >( ui.panelSplitter->widget( p ) );
+    const auto searchPanels = m_panels->allPanels();
+    for ( int p = 0; p < searchPanels.size(); p++ ) {
+      auto * panel = searchPanels[ p ];
       if ( !panel )
         continue;
       for ( int i = 0; i < panel->count(); i++ ) {
