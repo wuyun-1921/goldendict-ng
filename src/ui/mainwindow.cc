@@ -1889,16 +1889,20 @@ void MainWindow::saveSession()
     return;
   }
 
-  QJsonArray panelsJson;
+  SessionData data;
+  data.searchBarText = ui.translateLine->text();
+  data.orientation   = ui.panelSplitter->orientation();
+
+  ArticleView * focusView = getCurrentArticleView();
+  int activePanelIdx = 0;
 
   for ( int p = 0; p < ui.panelSplitter->count(); p++ ) {
     auto * panel = qobject_cast< QTabWidget * >( ui.panelSplitter->widget( p ) );
     if ( !panel || panel->count() == 0 )
       continue;
 
-    QJsonArray tabsJson;
-    int nonWebsiteActiveTab = 0;
-    int nonWebsiteCount     = 0;
+    SessionData::PanelInfo panelInfo;
+    int nonWebsiteCount = 0;
     for ( int i = 0; i < panel->count(); i++ ) {
       auto * av = qobject_cast< ArticleView * >( panel->widget( i ) );
       if ( !av || av->isWebsite() )
@@ -1911,55 +1915,29 @@ void MainWindow::saveSession()
         continue;
 
       if ( i == panel->currentIndex() )
-        nonWebsiteActiveTab = nonWebsiteCount;
+        panelInfo.activeTab = nonWebsiteCount;
 
-      QJsonObject tabJson;
-      tabJson[ "word" ]        = word;
-      tabJson[ "group" ]       = (int)av->getCurrentGroupId();
-      tabJson[ "alwaysQuery" ] = av->alwaysQuery();
-      if ( !av->collapsedDicts.isEmpty() ) {
-        tabJson[ "collapsed" ] = QStringList( av->collapsedDicts.begin(), av->collapsedDicts.end() ).join( ',' );
-      }
-      tabsJson.append( tabJson );
+      SessionData::TabInfo tab;
+      tab.word        = word;
+      tab.group       = av->getCurrentGroupId();
+      tab.alwaysQuery = av->alwaysQuery();
+      tab.collapsedDicts = av->collapsedDicts;
+      panelInfo.tabs.append( tab );
       nonWebsiteCount++;
     }
 
-    if ( tabsJson.isEmpty() )
+    if ( panelInfo.tabs.isEmpty() )
       continue;
 
-    QJsonObject panelJson;
-    panelJson[ "tabs" ]      = tabsJson;
-    panelJson[ "activeTab" ] = nonWebsiteActiveTab;
-    panelsJson.append( panelJson );
+    if ( focusView && panel && panel->indexOf( focusView ) >= 0 )
+      activePanelIdx = p;
+
+    data.panels.append( panelInfo );
   }
 
-  int activePanelIdx = 0;
-  auto * focusView   = getCurrentArticleView();
-  if ( focusView ) {
-    for ( int p = 0; p < ui.panelSplitter->count(); p++ ) {
-      auto * panel = qobject_cast< QTabWidget * >( ui.panelSplitter->widget( p ) );
-      if ( panel && panel->indexOf( focusView ) >= 0 ) {
-        activePanelIdx = p;
-        break;
-      }
-    }
-  }
+  data.activePanel = activePanelIdx;
 
-  QJsonObject root;
-  root[ "panels" ]        = panelsJson;
-  root[ "activePanel" ]   = activePanelIdx;
-  root[ "orientation" ]   = ( ui.panelSplitter->orientation() == Qt::Horizontal ) ? QStringLiteral( "Horizontal" ) :
-                                                                                    QStringLiteral( "Vertical" );
-  root[ "searchBarText" ] = ui.translateLine->text();
-
-  QJsonDocument doc( root );
-  QString path = Config::getConfigDir() + "session.json";
-  QFile file( path );
-  if ( file.open( QIODevice::WriteOnly | QIODevice::Truncate ) ) {
-    file.write( doc.toJson( QJsonDocument::Compact ) );
-    file.close();
-    m_sessionSaved = true;
-  }
+  m_sessionSaved = m_session.save( data, Config::getConfigDir() + "session.json" );
 }
 
 void MainWindow::loadSession()
@@ -1967,72 +1945,34 @@ void MainWindow::loadSession()
   if ( !cfg.preferences.saveSession )
     return;
 
-  QString path = Config::getConfigDir() + "session.json";
-  QFile file( path );
-  if ( !file.open( QIODevice::ReadOnly ) ) {
-    qDebug() << "loadSession: cannot open session file:" << path;
+  SessionData data = m_session.load( Config::getConfigDir() + "session.json" );
+  if ( data.panels.isEmpty() )
     return;
-  }
 
-  QByteArray raw = file.readAll();
-  file.close();
-  if ( raw.isEmpty() ) {
-    qDebug() << "loadSession: empty session file:" << path;
-    return;
-  }
+  if ( !data.searchBarText.isEmpty() )
+    ui.translateLine->setText( data.searchBarText );
 
-  QJsonParseError err;
-  QJsonDocument doc = QJsonDocument::fromJson( raw, &err );
-  if ( err.error != QJsonParseError::NoError || !doc.isObject() ) {
-    qDebug() << "loadSession: JSON parse error in" << path << ":" << err.errorString();
-    return;
-  }
+  ui.panelSplitter->setOrientation( data.orientation );
 
-  QJsonObject root = doc.object();
-
-  QString savedSearchText = root[ "searchBarText" ].toString();
-  if ( !savedSearchText.isEmpty() ) {
-    ui.translateLine->setText( savedSearchText );
-  }
-
-  QString orient = root[ "orientation" ].toString();
-  if ( orient == QStringLiteral( "Vertical" ) )
-    ui.panelSplitter->setOrientation( Qt::Vertical );
-  else
-    ui.panelSplitter->setOrientation( Qt::Horizontal );
-
-  QJsonArray panelsJson = root[ "panels" ].toArray();
-
-  struct TabInfo
+  struct RestoreTab
   {
-    QString word;
-    unsigned group;
-    bool alwaysQuery;
-    QSet< QString > collapsedDicts;
+    QString            word;
+    unsigned           group;
+    bool               alwaysQuery;
+    QSet< QString >    collapsedDicts;
   };
-  QVector< QVector< TabInfo > > allPanels;
+  QVector< QVector< RestoreTab > > allPanels;
   QVector< int > activeTabs;
 
-  for ( int p = 0; p < panelsJson.size(); p++ ) {
-    QJsonObject panelJson = panelsJson[ p ].toObject();
-    QJsonArray tabsJson   = panelJson[ "tabs" ].toArray();
-    if ( tabsJson.isEmpty() )
-      continue;
-    activeTabs.append( panelJson[ "activeTab" ].toInt( 0 ) );
-
-    QVector< TabInfo > panelTabs;
-    for ( int t = 0; t < tabsJson.size(); t++ ) {
-      QJsonObject tabJson = tabsJson[ t ].toObject();
-      TabInfo info;
-      info.word        = tabJson[ "word" ].toString();
-      info.group       = (unsigned)tabJson[ "group" ].toInt();
-      info.alwaysQuery = tabJson[ "alwaysQuery" ].toBool();
-      if ( tabJson.contains( "collapsed" ) ) {
-        for ( const auto & id : tabJson[ "collapsed" ].toString().split( ',' ) ) {
-          if ( !id.isEmpty() )
-            info.collapsedDicts.insert( id );
-        }
-      }
+  for ( const auto & panelInfo : data.panels ) {
+    activeTabs.append( panelInfo.activeTab );
+    QVector< RestoreTab > panelTabs;
+    for ( const auto & tab : panelInfo.tabs ) {
+      RestoreTab info;
+      info.word           = tab.word;
+      info.group          = tab.group;
+      info.alwaysQuery    = tab.alwaysQuery;
+      info.collapsedDicts = tab.collapsedDicts;
       panelTabs.append( info );
     }
     allPanels.append( panelTabs );
@@ -2124,7 +2064,7 @@ void MainWindow::loadSession()
 
   distributePanelSizes();
 
-  int activePanelIdx = root[ "activePanel" ].toInt( 0 );
+  int activePanelIdx = data.activePanel;
   if ( activePanelIdx < ui.panelSplitter->count() ) {
     auto * activePanel = qobject_cast< QTabWidget * >( ui.panelSplitter->widget( activePanelIdx ) );
     if ( activePanel && activePanel->count() > 0 ) {

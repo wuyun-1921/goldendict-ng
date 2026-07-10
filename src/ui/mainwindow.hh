@@ -33,6 +33,7 @@
 #endif
 #include "scanpopup.hh"
 #include "clipboard/clipboardlistener.hh"
+#include "session.hh"
 // must place the qactiongroup after fixx11h.h, None in QActionGroup conflict with X.h's macro None.
 
 using std::string;
@@ -70,8 +71,8 @@ public:
   int totalTabCount() const;
   int panelCount() const;
   void distributePanelSizes();
-  void saveSession();
-  void loadSession();
+  void saveSession();  // delegates to m_session
+  void loadSession();  // delegates to m_session
 
   enum class WildcardPolicy {
     EscapeWildcards,
@@ -153,6 +154,7 @@ public:
   QPointer< ArticleView > lastFocusedArticleView; // last ArticleView that had keyboard focus
   bool m_sessionSaved               = false;
   bool m_sessionRestoreInProgress   = false;
+  Session m_session;
   QToolBar * navToolbar;
   MainStatusBar * mainStatusBar;
   QAction *navBack, *navForward, *navPronounce, *enableScanningAction;
