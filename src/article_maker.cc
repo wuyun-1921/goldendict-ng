@@ -203,9 +203,31 @@ std::string ArticleMaker::makeHtmlHeader( const QString & word, const QString & 
   // container and breaks dictionary rendering (e.g. mdict font handling in
   // Qt WebEngine).
   if ( cfg.entryHeightLimit ) {
-    result += QString( R"(<style>.gdarticlebody{overflow-y:auto;}:root{--gd-entry-height:%1px;}.gdarticlebody{max-height:var(--gd-entry-height);}</style>)" )
+    // Limit each dictionary entry's height. Robust against four causes of
+    // spurious scrollbar (FORK-SPEC #13):
+    //  1. Last block's margin-bottom trapped in BFC → zeroed.
+    //  2. Last block's padding-bottom trapped in BFC → zeroed.
+    //  3. Trailing empty sibling (<br>/clear <div>) blocking :last-child → hidden.
+    //  4. Chromium compositor ghost-scroll: even with scrollHeight==clientHeight,
+    //     overflow-y:auto can allocate a tiny scroll layer → use hidden by default,
+    //     switch to auto only when scrollHeight actually exceeds clientHeight.
+    // Additionally, a 16px soft cap absorbs sub-pixel/micro overflow.
+    result += QString( R"(<style>.gdarticlebody{overflow-y:hidden;}:root{--gd-entry-height:%1px;}.gdarticlebody{max-height:calc(var(--gd-entry-height) + 16px);}.gdarticlebody :last-child{margin-bottom:0 !important;padding-bottom:0 !important;}.gdarticlebody br:last-child,.gdarticlebody div:last-child:empty{display:none !important;}</style>)" )
                 .arg( QString::number( cfg.entryMaxHeight ) )
                 .toStdString();
+
+    result += R"(<script>
+(function(){
+function fix(){var els=document.querySelectorAll('.gdarticlebody'),i;
+for(i=0;i<els.length;i++){var e=els[i];
+e.style.overflowY=e.scrollHeight>e.clientHeight?'auto':'hidden';}}
+requestAnimationFrame(function(){requestAnimationFrame(function(){
+fix();
+window.addEventListener('load',fix);
+if(document.fonts&&document.fonts.ready)document.fonts.ready.then(fix);
+});});
+})();
+</script>)";
   }
 
   result += "</head><body>";

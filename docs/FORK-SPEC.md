@@ -95,4 +95,28 @@ merges only sparingly.
       remains, so the
       height limit must instead be applied to the panel *container* (not
       `.gdarticlebody`) to fully fix mdict while keeping the feature.
+ 13. **Spurious scrollbar on entries that fit the height limit.** Four
+      independent causes, each addressed:
+      (a) Trailing bottom margin of the last content block is trapped inside
+      the scroll container (a BFC) and inflates `scrollHeight` past `max-height`.
+      Fix: `.gdarticlebody :last-child{margin-bottom:0 !important}` (at every
+      nesting depth).
+      (b) Trailing bottom padding — same BFC-trapping mechanism as margin.
+      Fix: zeroed alongside margin on `:last-child`.
+      (c) A trailing empty sibling element (e.g. `<br>`, clear `<div>`) blocks
+      the real last block from being `:last-child`, so its margin/padding escape
+      zeroing. Fix: `br:last-child,div:last-child:empty{display:none !important}`.
+      (d) Chromium compositor ghost-scroll: even with `scrollHeight==clientHeight`,
+      `overflow-y:auto` can allocate a tiny scroll extent for its internal scroll
+      layer, producing a scrollbar that moves a few px. Fix: default to
+      `overflow-y:hidden`; use JS (double `requestAnimationFrame` + `load` +
+      `fonts.ready`) to switch to `overflow-y:auto` only when
+      `scrollHeight > clientHeight` is confirmed after layout.
+      Additionally, a 16px soft cap (`max-height:calc(var(--gd-entry-height) +
+      16px)`) absorbs sub-pixel/metric overflow without shrinking the box.
+      ANTI-PATTERN (do not use): a `::after{content:"";display:block;height:0;
+      margin-top:-Npx}` "tolerance" hack. As the last child it pulls the
+      container's own bottom edge up, shrinking EVERY entry by N px and creating
+      scrollbars on entries that previously fit (observed on MW Unabridged).
+      The `calc(... + 16px)` cap raise fixes it with no shrink.
 
