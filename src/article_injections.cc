@@ -10,9 +10,11 @@ std::vector< Injection > articleInjections( const Config::Preferences & cfg )
     // overflow-y:hidden provides the BFC to prevent the ghost scroll layer
     // Chromium sometimes allocates with overflow-y:auto even when content
     // fits. JS switches to overflow-y:auto when content genuinely exceeds
-    // the cap (>2px tolerance for sub-pixel rounding). FORK-SPEC #13.
+    // the cap (>2px tolerance for sub-pixel rounding).
+    // The :last-child and empty-div rules prevent spurious scrollbars from
+    // trailing margin/padding and empty inline elements. FORK-SPEC #12-13.
     Injection inj;
-    inj.tag = QString( R"(<style>.gdarticlebody{overflow-y:hidden;}:root{--gd-entry-height:%1px;}.gdarticlebody{max-height:calc(var(--gd-entry-height) + 16px);}</style>)" )
+    inj.tag = QString( R"(<style>.gdarticlebody{overflow-y:hidden;}:root{--gd-entry-height:%1px;}.gdarticlebody{max-height:calc(var(--gd-entry-height) + 16px);}.gdarticlebody .gdarticle :last-child{margin-bottom:0 !important;padding-bottom:0 !important;}.gdarticlebody .gdarticle br:last-child,.gdarticlebody .gdarticle div:last-child:empty{display:none !important;}</style>)" )
                 .arg( QString::number( cfg.entryMaxHeight ) )
                 .toStdString();
     result.push_back( inj );

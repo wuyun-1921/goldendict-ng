@@ -47,7 +47,7 @@ bool Session::save( const SessionData & data, const QString & filePath )
   file.write( doc.toJson( QJsonDocument::Compact ) );
   file.close();
   if ( file.error() != QFile::NoError ) {
-    qDebug() << "saveSession: write error for" << filePath << ":" << file.errorString();
+    qWarning() << "saveSession: write error for" << filePath << ":" << file.errorString();
     return false;
   }
   return true;

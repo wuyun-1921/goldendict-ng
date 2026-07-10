@@ -1430,6 +1430,7 @@ void MainWindow::addPanel( ArticleView * av, int targetPanelIdx )
   int prevMainCount    = ui.tabWidget->count();
 
   m_panels->add( av, targetPanelIdx );
+  updateTabTitleMarker( av );
 
   if ( movingFromMain && prevMainCount == 1 && ui.tabWidget->count() == 0 )
     createNewTab( true, tr( "(untitled)" ) );

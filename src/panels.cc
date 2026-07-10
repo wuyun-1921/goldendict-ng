@@ -2,6 +2,7 @@
 #include "ui/articleview.hh"
 #include <QApplication>
 #include <QStyle>
+#include <QWidget>
 
 Panels::Panels( QSplitter * splitter, QObject * parent )
   : QObject( parent )
@@ -157,6 +158,13 @@ void Panels::distributeSizes()
   for ( int i = 0; i < n; i++ )
     sizes.append( each );
   m_splitter->setSizes( sizes );
+
+  for ( int i = 0; i < n; i++ )
+    m_splitter->setStretchFactor( i, 1 );
+
+  auto centralWidget = qobject_cast< QWidget * >( m_splitter->parent() );
+  if ( centralWidget )
+    centralWidget->setMinimumWidth( n * 200 );
 }
 
 void Panels::focusAdjacent( int offset )
