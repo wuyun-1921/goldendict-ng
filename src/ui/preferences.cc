@@ -256,20 +256,20 @@ Preferences::Preferences( QWidget * parent, Config::Class & cfg_ ):
   ui.ignorePunctuation->setChecked( p.ignorePunctuation );
   ui.sessionCollapse->setChecked( p.sessionCollapse );
 
-  ui.dictPanelEnabled->setChecked( p.dictPanelEnabled );
-  ui.dictPanelMaxHeight->setValue( p.dictPanelMaxHeight );
-  ui.dictPanelScrollZone->setValue( p.dictPanelScrollZone );
+  ui.entryHeightLimit->setChecked( p.entryHeightLimit );
+  ui.entryMaxHeight->setValue( p.entryMaxHeight );
+  ui.scrollZonePercent->setValue( p.scrollZonePercent );
   ui.reverseScrollZone->setChecked( p.reverseScrollZone );
 
   // Gray out height/spin controls when limit is unchecked
-  auto updateDictPanelWidgets = [ this ]() {
-    bool on = ui.dictPanelEnabled->isChecked();
-    ui.dictPanelMaxHeight->setEnabled( on );
-    ui.dictPanelScrollZone->setEnabled( on );
-    ui.dictPanelZoneLabel->setEnabled( on );
+  auto updateEntryHeightWidgets = [ this ]() {
+    bool on = ui.entryHeightLimit->isChecked();
+    ui.entryMaxHeight->setEnabled( on );
+    ui.scrollZonePercent->setEnabled( on );
+    ui.scrollZoneLabel->setEnabled( on );
   };
-  connect( ui.dictPanelEnabled, &QCheckBox::toggled, this, updateDictPanelWidgets );
-  updateDictPanelWidgets();
+  connect( ui.entryHeightLimit, &QCheckBox::toggled, this, updateEntryHeightWidgets );
+  updateEntryHeightWidgets();
 
   ui.synonymSearchEnabled->setChecked( p.synonymSearchEnabled );
 
@@ -545,9 +545,9 @@ Config::Preferences Preferences::getPreferences()
   p.ignorePunctuation      = ui.ignorePunctuation->isChecked();
   p.sessionCollapse        = ui.sessionCollapse->isChecked();
 
-  p.dictPanelEnabled    = ui.dictPanelEnabled->isChecked();
-  p.dictPanelMaxHeight  = ui.dictPanelMaxHeight->value();
-  p.dictPanelScrollZone = ui.dictPanelScrollZone->value();
+  p.entryHeightLimit    = ui.entryHeightLimit->isChecked();
+  p.entryMaxHeight      = ui.entryMaxHeight->value();
+  p.scrollZonePercent   = ui.scrollZonePercent->value();
   p.reverseScrollZone   = ui.reverseScrollZone->isChecked();
 
   p.stripClipboard         = ui.stripClipboard->isChecked();

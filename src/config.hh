@@ -386,11 +386,13 @@ struct Preferences
   // On Windows, this field exists but is not used (Windows uses its own styling system).
   QString interfaceStyle;
 
-  // Dict panel height limit
-  bool dictPanelEnabled;
-  int dictPanelMaxHeight;
-  QString dictPanelHeightUnit;
-  int dictPanelScrollZone;
+  // Limit each dictionary entry's displayed height ("Articles Extra" feature).
+  // Only when entryHeightLimit is on does ArticleMaker wrap each article in a
+  // scroll container; leaving it off avoids Qt WebEngine rendering quirks
+  // (e.g. mdict font handling). Default is off for that reason.
+  bool entryHeightLimit;
+  int entryMaxHeight;
+  int scrollZonePercent;
   bool reverseScrollZone;
   int sideBySideDefaultSplit;
 

@@ -1880,50 +1880,50 @@ from mouse-over, selection, clipboard or command line</string>
         </widget>
        </item>
        <item>
-        <widget class="QGroupBox" name="dictPanelGroup">
-         <property name="title">
-          <string>Articles Extra</string>
-         </property>
-         <layout class="QFormLayout" name="formLayout_dictPanel">
-          <item row="0" column="0">
-           <widget class="QCheckBox" name="dictPanelEnabled">
-            <property name="text">
-             <string>Limit dictionary article height</string>
-            </property>
-           </widget>
-          </item>
-          <item row="1" column="0">
-           <layout class="QHBoxLayout" name="horizontalLayout_dictPanel">
-            <item>
-             <widget class="QLabel" name="dictPanelHeightLabel">
-              <property name="text">
-               <string>Max height (px):</string>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <widget class="QSpinBox" name="dictPanelMaxHeight">
-              <property name="minimum">
-               <number>50</number>
-              </property>
-              <property name="maximum">
-               <number>2000</number>
-              </property>
-             </widget>
-            </item>
-           </layout>
-          </item>
-          <item row="2" column="0">
-           <layout class="QHBoxLayout" name="horizontalLayout_dictPanelScroll">
-            <item>
-             <widget class="QLabel" name="dictPanelZoneLabel">
-              <property name="text">
-               <string>Scroll zone split:</string>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <widget class="QSpinBox" name="dictPanelScrollZone">
+         <widget class="QGroupBox" name="entryHeightGroup">
+          <property name="title">
+           <string>Articles Extra</string>
+          </property>
+          <layout class="QFormLayout" name="formLayout_entryHeight">
+           <item row="0" column="0">
+            <widget class="QCheckBox" name="entryHeightLimit">
+             <property name="text">
+              <string>Limit dictionary article height</string>
+             </property>
+            </widget>
+           </item>
+           <item row="1" column="0">
+            <layout class="QHBoxLayout" name="horizontalLayout_entryHeight">
+             <item>
+              <widget class="QLabel" name="entryHeightLabel">
+               <property name="text">
+                <string>Max height (px):</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QSpinBox" name="entryMaxHeight">
+               <property name="minimum">
+                <number>50</number>
+               </property>
+               <property name="maximum">
+                <number>2000</number>
+               </property>
+              </widget>
+             </item>
+            </layout>
+           </item>
+           <item row="2" column="0">
+            <layout class="QHBoxLayout" name="horizontalLayout_scrollZone">
+             <item>
+              <widget class="QLabel" name="scrollZoneLabel">
+               <property name="text">
+                <string>Scroll zone split:</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QSpinBox" name="scrollZonePercent">
               <property name="toolTip">
                <string>Width of the middle scroll zone as percentage. Moving the mouse wheel in this zone scrolls the article. Moving in the outer zones scrolls the page.</string>
               </property>

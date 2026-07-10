@@ -155,10 +155,9 @@ Preferences::Preferences():
   synonymSearchEnabled( true ),
   stripClipboard( false ),
   interfaceStyle( "Default" ),
-  dictPanelEnabled( true ),
-  dictPanelMaxHeight( 300 ),
-  dictPanelHeightUnit( "px" ),
-  dictPanelScrollZone( 50 ),
+  entryHeightLimit( false ),
+  entryMaxHeight( 300 ),
+  scrollZonePercent( 50 ),
   reverseScrollZone( false ),
   sideBySideDefaultSplit( 50 )
 {
@@ -1039,12 +1038,21 @@ Class load()
       c.preferences.raiseWindowOnSearch = ( preferences.namedItem( "raiseWindowOnSearch" ).toElement().text() == "1" );
     }
 
-    c.preferences.dictPanelEnabled   = ( preferences.namedItem( "dictPanelEnabled" ).toElement().text() == "1" );
-    c.preferences.dictPanelMaxHeight = preferences.namedItem( "dictPanelMaxHeight" ).toElement().text().toInt();
-    if ( !preferences.namedItem( "dictPanelHeightUnit" ).isNull() )
-      c.preferences.dictPanelHeightUnit = preferences.namedItem( "dictPanelHeightUnit" ).toElement().text();
-    if ( !preferences.namedItem( "dictPanelScrollZone" ).isNull() )
-      c.preferences.dictPanelScrollZone = preferences.namedItem( "dictPanelScrollZone" ).toElement().text().toInt();
+    // entryHeightLimit (formerly dictPanelEnabled)
+    if ( !preferences.namedItem( "entryHeightLimit" ).isNull() )
+      c.preferences.entryHeightLimit = ( preferences.namedItem( "entryHeightLimit" ).toElement().text() == "1" );
+    else
+      c.preferences.entryHeightLimit = ( preferences.namedItem( "dictPanelEnabled" ).toElement().text() == "1" );
+    // entryMaxHeight (formerly dictPanelMaxHeight)
+    if ( !preferences.namedItem( "entryMaxHeight" ).isNull() )
+      c.preferences.entryMaxHeight = preferences.namedItem( "entryMaxHeight" ).toElement().text().toInt();
+    else
+      c.preferences.entryMaxHeight = preferences.namedItem( "dictPanelMaxHeight" ).toElement().text().toInt();
+    // scrollZonePercent (formerly dictPanelScrollZone)
+    if ( !preferences.namedItem( "scrollZonePercent" ).isNull() )
+      c.preferences.scrollZonePercent = preferences.namedItem( "scrollZonePercent" ).toElement().text().toInt();
+    else if ( !preferences.namedItem( "dictPanelScrollZone" ).isNull() )
+      c.preferences.scrollZonePercent = preferences.namedItem( "dictPanelScrollZone" ).toElement().text().toInt();
     if ( !preferences.namedItem( "reverseScrollZone" ).isNull() )
       c.preferences.reverseScrollZone = ( preferences.namedItem( "reverseScrollZone" ).toElement().text() == "1" );
 
@@ -2066,17 +2074,14 @@ void save( const Class & c )
     opt.appendChild( dd.createTextNode( c.preferences.raiseWindowOnSearch ? "1" : "0" ) );
     preferences.appendChild( opt );
 
-    opt = dd.createElement( "dictPanelEnabled" );
-    opt.appendChild( dd.createTextNode( c.preferences.dictPanelEnabled ? "1" : "0" ) );
+    opt = dd.createElement( "entryHeightLimit" );
+    opt.appendChild( dd.createTextNode( c.preferences.entryHeightLimit ? "1" : "0" ) );
     preferences.appendChild( opt );
-    opt = dd.createElement( "dictPanelMaxHeight" );
-    opt.appendChild( dd.createTextNode( QString::number( c.preferences.dictPanelMaxHeight ) ) );
+    opt = dd.createElement( "entryMaxHeight" );
+    opt.appendChild( dd.createTextNode( QString::number( c.preferences.entryMaxHeight ) ) );
     preferences.appendChild( opt );
-    opt = dd.createElement( "dictPanelHeightUnit" );
-    opt.appendChild( dd.createTextNode( c.preferences.dictPanelHeightUnit ) );
-    preferences.appendChild( opt );
-    opt = dd.createElement( "dictPanelScrollZone" );
-    opt.appendChild( dd.createTextNode( QString::number( c.preferences.dictPanelScrollZone ) ) );
+    opt = dd.createElement( "scrollZonePercent" );
+    opt.appendChild( dd.createTextNode( QString::number( c.preferences.scrollZonePercent ) ) );
     preferences.appendChild( opt );
     opt = dd.createElement( "reverseScrollZone" );
     opt.appendChild( dd.createTextNode( c.preferences.reverseScrollZone ? "1" : "0" ) );
