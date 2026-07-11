@@ -72,12 +72,15 @@ QVector< QTabWidget * > Panels::allPanels() const
 
 void Panels::add( ArticleView * av, int targetPanelIdx )
 {
+  if ( !av )
+    return;
+
   QString title = av->windowTitle();
 
   // Remove from current panel
-  QTabWidget * currentPanel = nullptr;
-  int currentPanelIdx       = -1;
-  int prevCount             = m_splitter->count();
+  QTabWidget * currentPanel    = nullptr;
+  int currentPanelIdx          = -1;
+  int prevCount                = m_splitter->count();
   for ( int i = 0; i < m_splitter->count(); i++ ) {
     auto * panel = qobject_cast< QTabWidget * >( m_splitter->widget( i ) );
     if ( !panel )
@@ -95,23 +98,17 @@ void Panels::add( ArticleView * av, int targetPanelIdx )
   if ( title.isEmpty() )
     title = tr( "(untitled)" );
 
-  // Clean up empty side panel (not main)
-  if ( currentPanel && currentPanel != m_splitter->widget( 0 ) && currentPanel->count() == 0 ) {
-    delete currentPanel;
-    prevCount--;
-    if ( currentPanelIdx < targetPanelIdx )
-      targetPanelIdx--;
-  }
+  // Determine target
+  QTabWidget * target     = nullptr;
+  bool panelDeleted       = false;
 
-  // Target: main panel is index 0
-  QTabWidget * target = nullptr;
   if ( targetPanelIdx >= m_splitter->count() ) {
     auto * panel = new QTabWidget( m_splitter );
     panel->setDocumentMode( true );
     m_splitter->addWidget( panel );
     target = panel;
   }
-  else {
+  else if ( targetPanelIdx >= 0 && targetPanelIdx < m_splitter->count() ) {
     target = qobject_cast< QTabWidget * >( m_splitter->widget( targetPanelIdx ) );
   }
   if ( !target )
@@ -121,9 +118,17 @@ void Panels::add( ArticleView * av, int targetPanelIdx )
   target->setCurrentWidget( av );
   av->setFocus();
 
+  // Clean up empty side panel LAST — after target is settled.
+  // Deleting before add() could trigger destruction signals that
+  // crash if the caller relies on stable widget state.
+  if ( currentPanel && currentPanel != m_splitter->widget( 0 ) && currentPanel->count() == 0 ) {
+    delete currentPanel;
+    panelDeleted = true;
+  }
+
   distributeSizes();
 
-  if ( m_splitter->count() != prevCount )
+  if ( panelDeleted || m_splitter->count() != prevCount )
     emit panelCountChanged( m_splitter->count() );
 }
 

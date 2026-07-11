@@ -1407,6 +1407,20 @@ MainWindow::~MainWindow()
     delete w;
   }
 
+  // Explicitly close side panel tabs to avoid Qt child-destruction
+  // ordering issues with QWebEngineProfile during shutdown.
+  const auto panels = m_panels->allPanels();
+  for ( int p = 1; p < panels.size(); p++ ) {
+    auto * panel = panels[ p ];
+    if ( !panel )
+      continue;
+    while ( panel->count() > 0 ) {
+      QWidget * w = panel->widget( 0 );
+      panel->removeTab( 0 );
+      delete w;
+    }
+  }
+
   if ( scanPopup ) {
     delete scanPopup;
     scanPopup = nullptr;
